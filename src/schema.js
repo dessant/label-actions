@@ -40,7 +40,14 @@ const fields = {
           .default(false)
           .description(
             'Set a lock reason, such as `off-topic`, `too heated`, `resolved` or `spam`'
-          )
+          ),
+         api: Joi.object().keys({
+             uri: Joi.string()
+                 .uri()
+                 .description('The url of the API endpoint'),
+             payload: Joi.object()
+                 .description('The payload to send. May use placeholders.')
+         })
       })
     )
     .max(200)

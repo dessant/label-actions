@@ -1,3 +1,5 @@
+const axios = require('axios');
+
 module.exports = class Action {
   constructor(context, config, logger) {
     this.context = context;
@@ -23,16 +25,13 @@ module.exports = class Action {
     if (!actions) {
       return;
     }
-    const {comment, open, close, lock, unlock, lockReason} = actions;
+    const {comment, open, close, lock, unlock, lockReason, api} = actions;
 
     const targetPayload = payload.issue || payload.pull_request;
 
     if (comment) {
       this.log.info(issue, 'Commenting');
-      const commentBody = comment.replace(
-        /{issue-author}/,
-        targetPayload.user.login
-      );
+      const commentBody = Action.handlePlaceHolders(comment, targetPayload);
       await this.ensureUnlock(issue, {active: targetPayload.locked}, () =>
         github.issues.createComment({...issue, body: commentBody})
       );
@@ -67,7 +66,20 @@ module.exports = class Action {
 
     if (unlock && targetPayload.locked) {
       this.log.info(issue, 'Unlocking');
-      github.issues.unlock(issue);
+     console.log(response); github.issues.unlock(issue);
+    }
+
+    if (api && api.uri) {
+        const api_payload = JSON.parse(
+            Action.handlePlaceHolders(JSON.stringify(api.payload))
+        );
+        axios.post(api.uri, api_payload)
+            .then(function (response) {
+                this.log.info('API call successful')
+            })
+            .catch(function (error) {
+                this.log.info('API call failed', error)
+            });
     }
   }
 
@@ -109,5 +121,18 @@ module.exports = class Action {
       return this.config[type].actions[label];
     }
     return this.config.actions[label];
+  }
+
+  static handlePlaceHolders(text, payload) {
+      const replacements = {
+          '/{issue-author}/': payload.user.login,
+          '/{url}/': payload.html_url,
+          '/{title}/': payload.title
+      };
+
+      for (let pattern in replacements) {
+          text = text.replace(pattern, replacements[pattern]);
+      }
+      return text;
   }
 };
