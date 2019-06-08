@@ -7,7 +7,9 @@ module.exports = class Action {
 
   async action() {
     const {payload, github} = this.context;
-    const issue = this.context.issue();
+    const issue = this.context.repo({
+      issue_number: this.context.issue().number
+    });
 
     const {only} = this.config;
     const type = payload.issue ? 'issues' : 'pulls';
@@ -40,12 +42,12 @@ module.exports = class Action {
 
     if (open && targetPayload.state === 'closed') {
       this.log.info(issue, 'Reopening');
-      await github.issues.edit({...issue, state: 'open'});
+      await github.issues.update({...issue, state: 'open'});
     }
 
     if (close && targetPayload.state === 'open') {
       this.log.info(issue, 'Closing');
-      await github.issues.edit({...issue, state: 'closed'});
+      await github.issues.update({...issue, state: 'closed'});
     }
 
     if (lock && !targetPayload.locked) {
