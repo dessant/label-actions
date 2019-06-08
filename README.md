@@ -10,8 +10,10 @@ that performs actions when issues or pull requests are labeled or unlabeled.
 
 The continued development of Label Actions is made possible
 thanks to the support of awesome backers. If you'd like to join them,
-please consider contributing with [Patreon](https://www.patreon.com/dessant),
-[PayPal](https://www.paypal.me/ArminSebastian) or [Bitcoin](https://goo.gl/uJUAaU).
+please consider contributing with
+[Patreon](https://armin.dev/go/patreon?pr=label-actions&src=repo),
+[PayPal](https://armin.dev/go/paypal?pr=label-actions&src=repo) or
+[Bitcoin](https://armin.dev/go/bitcoin?pr=label-actions&src=repo).
 
 ## How It Works
 
