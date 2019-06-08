@@ -20,7 +20,7 @@ The app performs certain actions when an issue or pull request is labeled or unl
 2. Create `.github/label-actions.yml` based on the template below
 3. Start labeling issues and pull requests
 
-⚠️ **If possible, install the app only for select repositories. Do not leave the `All repositories` option selected, unless you intend to use the app for all current and future repositories.**
+**If possible, install the app only for select repositories. Do not leave the `All repositories` option selected, unless you intend to use the app for all current and future repositories.**
 
 #### Configuration
 
