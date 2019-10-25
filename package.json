@@ -1,6 +1,6 @@
 {
   "name": "label-actions",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A GitHub App built with Probot that performs actions when issues or pull requests are labeled or unlabeled.",
   "author": "Armin Sebastian",
   "license": "MIT",
