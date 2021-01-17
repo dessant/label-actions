@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0](https://github.com/dessant/label-actions/compare/v1.0.1...v2.0.0) (2021-01-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* The deployment method and configuration options have changed.
+
+*  feat: move to GitHub Actions ([7996649](https://github.com/dessant/label-actions/commit/7996649692b3ebbf853a8e59afe70514c7e10e66))
+
 ### [1.0.1](https://github.com/dessant/label-actions/compare/v1.0.0...v1.0.1) (2019-10-25)
 
 
