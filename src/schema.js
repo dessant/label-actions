@@ -1,65 +1,93 @@
-const Joi = require('@hapi/joi');
+const Joi = require('joi');
 
-const fields = {
-  actions: Joi.object()
-    .pattern(
-      Joi.string()
-        .trim()
-        .max(50),
-      Joi.object().keys({
-        comment: Joi.alternatives()
-          .try(
-            Joi.string()
-              .trim()
-              .max(10000),
-            Joi.boolean().only(false)
-          )
-          .default(false)
-          .description(
-            'Post a comment, `{issue-author}` is an optional placeholder'
-          ),
-        close: Joi.boolean()
-          .default(false)
-          .description('Close the thread'),
-        open: Joi.boolean()
-          .default(false)
-          .description('Reopen the thread'),
-        lock: Joi.boolean()
-          .default(false)
-          .description('Lock the thread'),
-        unlock: Joi.boolean()
-          .default(false)
-          .description('Unlock the thread'),
-        lockReason: Joi.alternatives()
-          .try(
-            Joi.string()
-              .trim()
-              .valid('off-topic', 'too heated', 'resolved', 'spam'),
-            Joi.boolean().only(false)
-          )
-          .default(false)
-          .description(
-            'Set a lock reason, such as `off-topic`, `too heated`, `resolved` or `spam`'
-          )
-      })
-    )
-    .max(200)
-    .description('Specify actions for issues and pull requests')
-};
+const extendedJoi = Joi.extend({
+  type: 'processOnly',
+  base: Joi.string(),
+  coerce: {
+    from: 'string',
+    method(value) {
+      value = value.trim();
+      if (['issues', 'prs'].includes(value)) {
+        value = value.slice(0, -1);
+      }
 
-const schema = Joi.object().keys({
-  actions: fields.actions.default({}),
-  only: Joi.string()
-    .trim()
-    .valid('issues', 'pulls')
-    .description('Limit to only `issues` or `pulls`'),
-  pulls: Joi.object().keys(fields),
-  issues: Joi.object().keys(fields),
-  _extends: Joi.string()
-    .trim()
-    .max(260)
-    .description('Repository to extend settings from'),
-  perform: Joi.boolean().default(!process.env.DRY_RUN)
+      return {value};
+    }
+  }
 });
 
-module.exports = schema;
+const configSchema = Joi.object({
+  'github-token': Joi.string().trim().max(100),
+
+  'config-path': Joi.string()
+    .trim()
+    .max(200)
+    .default('.github/label-actions.yml'),
+
+  'process-only': extendedJoi.processOnly().valid('issue', 'pr', '').default('')
+});
+
+const actions = {
+  close: Joi.boolean(),
+
+  reopen: Joi.boolean(),
+
+  lock: Joi.boolean(),
+
+  unlock: Joi.boolean(),
+
+  'lock-reason': Joi.alternatives().try(
+    Joi.boolean().only(false),
+    Joi.string().trim().valid('resolved', 'off-topic', 'too heated', 'spam', '')
+  ),
+
+  comment: Joi.alternatives().try(
+    Joi.boolean().only(false),
+    Joi.string().trim().valid(''),
+    Joi.array().items(Joi.string().trim().max(65536)).min(1).max(10).single()
+  ),
+
+  label: Joi.alternatives().try(
+    Joi.boolean().only(false),
+    Joi.string().trim().valid(''),
+    Joi.array()
+      .items(Joi.string().trim().max(50))
+      .min(1)
+      .max(30)
+      .unique()
+      .single()
+  ),
+
+  unlabel: Joi.alternatives().try(
+    Joi.boolean().only(false),
+    Joi.string().trim().valid(''),
+    Joi.array()
+      .items(Joi.string().trim().max(50))
+      .min(1)
+      .max(30)
+      .unique()
+      .single()
+  )
+};
+
+const actionSchema = Joi.object()
+  .pattern(
+    Joi.string().trim().max(51),
+    Joi.object().keys({
+      close: actions.close.default(false),
+      reopen: actions.reopen.default(false),
+      lock: actions.lock.default(false),
+      unlock: actions.unlock.default(false),
+      'lock-reason': actions['lock-reason'].default(''),
+      comment: actions.comment.default(''),
+      label: actions.label.default(''),
+      unlabel: actions.unlabel.default(''),
+
+      issues: Joi.object().keys(actions),
+      prs: Joi.object().keys(actions)
+    })
+  )
+  .min(1)
+  .max(200);
+
+module.exports = {configSchema, actionSchema};

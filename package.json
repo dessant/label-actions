@@ -1,60 +1,55 @@
 {
   "name": "label-actions",
   "version": "1.0.1",
-  "description": "A GitHub App built with Probot that performs actions when issues or pull requests are labeled or unlabeled.",
+  "description": "A GitHub Action that performs actions when issues or pull requests are labeled or unlabeled.",
   "author": "Armin Sebastian",
   "license": "MIT",
+  "homepage": "https://github.com/dessant/label-actions",
   "repository": {
     "url": "https://github.com/dessant/label-actions.git",
     "type": "git"
   },
-  "bugs": "https://github.com/dessant/label-actions/issues",
+  "bugs": {
+    "url": "https://github.com/dessant/label-actions/issues"
+  },
   "main": "src/index.js",
   "scripts": {
-    "start": "probot run ./src/index.js",
-    "watch": "nodemon --exec 'yarn run start'",
-    "update": "ncu --upgrade && yarn",
-    "push": "git push --follow-tags origin master",
-    "release": "standard-version"
+    "build": "ncc build src/index.js -o dist",
+    "update": "ncu --upgrade",
+    "release": "standard-version",
+    "push": "git push --tags origin master"
   },
-  "files": [
-    "docs",
-    "src"
-  ],
   "dependencies": {
-    "@hapi/joi": "^16.1.7",
-    "probot": "^9.6.0",
-    "probot-messages": "^1.0.1",
-    "uuid": "^3.3.3"
+    "@actions/core": "^1.2.6",
+    "@actions/github": "^4.0.0",
+    "joi": "^17.3.0",
+    "js-yaml": "^4.0.0"
   },
   "devDependencies": {
-    "nodemon": "^1.19.4",
-    "npm-check-updates": "^3.1.25",
-    "prettier": "^1.18.2",
-    "smee-client": "^1.1.0",
-    "standard-version": "^7.0.0"
+    "@vercel/ncc": "^0.27.0",
+    "npm-check-updates": "^10.2.5",
+    "prettier": "^2.2.1",
+    "standard-version": "^9.1.0"
   },
   "engines": {
-    "node": ">=8.12.0"
+    "node": ">=12.0.0"
   },
   "keywords": [
     "github",
     "issues",
     "pull requests",
-    "label",
+    "github labels",
     "comment",
     "close",
     "lock",
     "label issues",
     "close issues",
     "lock issues",
+    "comment",
     "automation",
-    "github app",
-    "probot",
-    "probot app",
+    "github actions",
+    "project management",
     "bot"
   ],
-  "resolutions": {
-    "**/@octokit/endpoint": "^5.3.6"
-  }
+  "private": true
 }

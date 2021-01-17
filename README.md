@@ -1,10 +1,12 @@
 # Label Actions
 
-[![Build Status](https://img.shields.io/travis/com/dessant/label-actions/master.svg)](https://travis-ci.com/dessant/label-actions)
-[![Version](https://img.shields.io/npm/v/label-actions.svg?colorB=007EC6)](https://www.npmjs.com/package/label-actions)
+Label Actions is a GitHub bot that performs certain actions when issues
+or pull requests are labeled or unlabeled.
 
-Label Actions is a GitHub App built with [Probot](https://github.com/probot/probot)
-that performs actions when issues or pull requests are labeled or unlabeled.
+> The legacy version of this project can be found
+[here](https://github.com/dessant/label-actions-app).
+
+<img width="800" src="https://raw.githubusercontent.com/dessant/label-actions/master/assets/screenshot.png">
 
 ## Supporting the Project
 
@@ -17,88 +19,230 @@ please consider contributing with
 
 ## How It Works
 
-The app performs certain actions when an issue or pull request
-is labeled or unlabeled. No action is taken by default and the app
+The bot performs certain actions when an issue or pull request
+is labeled or unlabeled. No action is taken by default and the bot
 must be configured. The following actions are supported:
 
-* Post a comment (`comment` option)
-* Close (`close` option)
-* Reopen (`open` option)
-* Lock with an optional lock reason (`lock` and `lockReason` options)
-* Unlock (`unlock` option)
+* Post comments
+* Add labels
+* Remove labels
+* Close threads
+* Reopen threads
+* Lock threads with an optional lock reason
+* Unlock threads
 
 ## Usage
 
-1. **[Install the GitHub App](https://github.com/apps/label-actions)**
-   for the intended repositories
-2. Create `.github/label-actions.yml` based on the template below
+1. Create the `.github/workflows/label-actions.yml` workflow file,
+   use one of the [example workflows](#examples) to get started
+2. Create the `.github/label-actions.yml` configuration file
+   based on the [example](#configuring-labels-and-actions) below
 3. Start labeling issues and pull requests
 
-**If possible, install the app only for select repositories.
-Do not leave the `All repositories` option selected, unless you intend
-to use the app for all current and future repositories.**
+### Inputs
 
-#### Configuration
+The bot can be configured using [input parameters](https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepswith).
+All parameters are optional, except `github-token`.
 
-Create `.github/label-actions.yml` in the default branch to enable the app,
-or add it at the same file path to a repository named `.github`.
-Configure the app by editing the following template:
+- **`github-token`**
+  - GitHub access token, value must be `${{ github.token }}`
+  - Required
+- **`config-path`**
+  - Configuration file path
+  - Optional, defaults to `.github/label-actions.yml`
+- **`process-only`**
+  - Process label events only for issues or pull requests, value must be
+    either `issues` or `prs`
+  - Optional, defaults to `''`
+
+### Configuration
+
+Labels and actions are specified in a configuration file.
+Actions are grouped under label names, and a label name can be prepended
+with a `-` sign to declare actions taken when a label is removed
+from a thread. Actions can be overridden or declared only for issues
+or pull requests by grouping them under the `issues` or `prs` key.
+
+#### Actions
+
+- **`comment`**
+  - Post comments, value must be either a comment or a list of comments,
+    `{issue-author}` is an optional placeholder
+  - Optional, defaults to `''`
+- **`label`**
+  - Add labels, value must be either a label or a list of labels
+  - Optional, defaults to `''`
+- **`unlabel`**
+  - Remove labels, value must be either a label or a list of labels
+  - Optional, defaults to `''`
+- **`close`**
+  - Close threads, value must be either `true` or `false`
+  - Optional, defaults to `false`
+- **`reopen`**
+  - Reopen threads, value must be either `true` or `false`
+  - Optional, defaults to `false`
+- **`lock`**
+  - Lock threads, value must be either `true` or `false`
+  - Optional, defaults to `false`
+- **`lock-reason`**
+  - Reason for locking threads, value must be one
+    of `resolved`, `off-topic`, `too heated` or `spam`
+  - Optional, defaults to `''`
+- **`unlock`**
+  - Unlock threads, value must be either `true` or `false`
+  - Optional, defaults to `false`
+
+## Examples
+
+The following workflow will perform the actions specified
+in the `.github/label-actions.yml` configuration file when an issue
+or pull request is labeled or unlabeled.
+
+```yaml
+name: 'Label Actions'
+
+on:
+  issues:
+    types: [labeled, unlabeled]
+  pull_request:
+    types: [labeled, unlabeled]
+
+jobs:
+  reaction:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dessant/label-actions@v2
+        with:
+          github-token: ${{ github.token }}
+```
+
+### Available input parameters
+
+This workflow declares all the available input parameters of the app
+and their default values. Any of the parameters can be omitted,
+except `github-token`.
+
+```yaml
+name: 'Label Actions'
+
+on:
+  issues:
+    types: [labeled, unlabeled]
+  pull_request:
+    types: [labeled, unlabeled]
+
+jobs:
+  reaction:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dessant/label-actions@v2
+        with:
+          github-token: ${{ github.token }}
+          config-path: '.github/label-actions.yml'
+          process-only: ''
+```
+
+### Ignoring label events
+
+This step will process label events only for issues.
+
+```yaml
+    steps:
+      - uses: dessant/label-actions@v2
+        with:
+          github-token: ${{ github.token }}
+          process-only: 'issues'
+```
+
+This step will process label events only for pull requests.
+
+```yaml
+    steps:
+      - uses: dessant/label-actions@v2
+        with:
+          github-token: ${{ github.token }}
+          process-only: 'prs'
+```
+
+Unnecessary workflow runs can be avoided by removing the events
+that trigger workflows from the workflow file instead.
+
+```yaml
+on:
+  issues:
+    types: labeled
+```
+
+### Configuring labels and actions
+
+Labels and actions are specified in a configuration file.
+The following example showcases how desired actions may be declared:
 
 ```yaml
 # Configuration for Label Actions - https://github.com/dessant/label-actions
 
-# Specify actions for issues and pull requests
-actions:
-  # Actions taken when the `heated` label is added
-  heated:
-    # Post a comment
+# Actions taken when the `heated` label is added to issues or pull requests
+heated:
+  # Post a comment
+  comment: >
+    The thread has been temporarily locked.
+    Please follow our community guidelines.
+  # Lock the thread
+  lock: true
+  # Set a lock reason
+  lock-reason: 'too heated'
+  # Additionally, add a label to pull requests
+  prs:
+    label: 'on hold'
+
+# Actions taken when the `heated` label is removed from issues or pull requests
+-heated:
+  # Unlock the thread
+  unlock: true
+
+# Actions taken when the `wontfix` label is removed from issues or pull requests
+-wontfix:
+  # Reopen the thread
+  reopen: true
+
+# Actions taken when the `feature` label is added to issues
+feature:
+  issues:
+    # Post a comment, `{issue-author}` is an optional placeholder
     comment: >
-      The thread has been temporarily locked.
-      Please follow our community guidelines.
-    # Lock the thread
-    lock: true
-    # Set a lock reason, such as `off-topic`, `too heated`, `resolved` or `spam`
-    lockReason: "too heated"
-  # Actions taken when the `heated` label is removed
-  -heated:
-    # Unlock the thread
-    unlock: true
+      :wave: @{issue-author}, please use our idea board to request new features.
+    # Close the issue
+    close: true
 
-# Optionally, specify configuration settings just for issues
-issues:
-  actions:
-    feature:
-      # Post a comment, `{issue-author}` is an optional placeholder
-      comment: >
-        :wave: @{issue-author}, please use our idea board to request new features.
-      # Close the issue
-      close: true
-    -wontfix:
-      # Reopen the issue
-      open: true
+# Actions taken when the `wip` label is added to pull requests
+wip:
+  prs:
+    # Add labels
+    label:
+      - 'on hold'
+      - 'needs feedback'
 
-# Optionally, specify configuration settings just for pull requests
-pulls:
-  actions:
-    pizzazz:
-      comment: >
-        ![](https://i.imgur.com/WuduJNk.jpg)
+# Actions taken when the `wip` label is removed from pull requests
+-wip:
+  prs:
+    # Add label
+    label: 'needs QA'
+    # Remove labels
+    unlabel:
+      - 'on hold'
+      - 'needs feedback'
 
-# Limit to only `issues` or `pulls`
-# only: issues
-
-# Repository to extend settings from
-# _extends: repo
+# Actions taken when the `pizzazz` label is added to issues or pull requests
+pizzazz:
+  # Post comments
+  comment:
+    - '![](https://i.imgur.com/WuduJNk.jpg)'
+    - '![](https://i.imgur.com/1D8yxOo.gif)'
 ```
-
-## Deployment
-
-See [docs/deploy.md](docs/deploy.md) if you would like to run your own
-instance of this app.
 
 ## License
 
-Copyright (c) 2019 Armin Sebastian
+Copyright (c) 2019-2021 Armin Sebastian
 
 This software is released under the terms of the MIT License.
 See the [LICENSE](LICENSE) file for further information.
