@@ -4,7 +4,7 @@ Label Actions is a GitHub bot that performs certain actions when issues
 or pull requests are labeled or unlabeled.
 
 > The legacy version of this project can be found
-[here](https://github.com/dessant/label-actions-app).
+> [here](https://github.com/dessant/label-actions-app).
 
 <img width="800" src="https://raw.githubusercontent.com/dessant/label-actions/master/assets/screenshot.png">
 
@@ -23,13 +23,13 @@ The bot performs certain actions when an issue or pull request
 is labeled or unlabeled. No action is taken by default and the bot
 must be configured. The following actions are supported:
 
-* Post comments
-* Add labels
-* Remove labels
-* Close threads
-* Reopen threads
-* Lock threads with an optional lock reason
-* Unlock threads
+- Post comments
+- Add labels
+- Remove labels
+- Close threads
+- Reopen threads
+- Lock threads with an optional lock reason
+- Unlock threads
 
 ## Usage
 
@@ -42,11 +42,11 @@ must be configured. The following actions are supported:
 ### Inputs
 
 The bot can be configured using [input parameters](https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepswith).
-All parameters are optional, except `github-token`.
 
 - **`github-token`**
-  - GitHub access token, value must be `${{ github.token }}`
-  - Required
+  - GitHub access token, value must be `${{ github.token }}` or an encrypted
+    secret which contains a [personal access token](#using-a-personal-access-token)
+  - Optional, defaults to `${{ github.token }}`
 - **`config-path`**
   - Configuration file path
   - Optional, defaults to `.github/label-actions.yml`
@@ -112,15 +112,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: dessant/label-actions@v2
-        with:
-          github-token: ${{ github.token }}
 ```
 
 ### Available input parameters
 
 This workflow declares all the available input parameters of the app
-and their default values. Any of the parameters can be omitted,
-except `github-token`.
+and their default values. Any of the parameters can be omitted.
 
 ```yaml
 name: 'Label Actions'
@@ -146,21 +143,21 @@ jobs:
 
 This step will process label events only for issues.
 
+<!-- prettier-ignore -->
 ```yaml
     steps:
       - uses: dessant/label-actions@v2
         with:
-          github-token: ${{ github.token }}
           process-only: 'issues'
 ```
 
 This step will process label events only for pull requests.
 
+<!-- prettier-ignore -->
 ```yaml
     steps:
       - uses: dessant/label-actions@v2
         with:
-          github-token: ${{ github.token }}
           process-only: 'prs'
 ```
 
@@ -238,6 +235,25 @@ pizzazz:
   comment:
     - '![](https://i.imgur.com/WuduJNk.jpg)'
     - '![](https://i.imgur.com/1D8yxOo.gif)'
+```
+
+### Using a personal access token
+
+The action uses an installation access token by default to interact with GitHub.
+You may also authenticate with a personal access token to perform actions
+as a GitHub user instead of the `github-actions` app.
+
+Create a [personal access token](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) with the `repo` or `public_repo` scopes
+enabled, and add the token as an [encrypted secret](https://docs.github.com/en/actions/reference/encrypted-secrets#creating-encrypted-secrets-for-a-repository)
+for the repository or organization, then provide the action with the secret
+using the `github-token` input parameter.
+
+<!-- prettier-ignore -->
+```yaml
+    steps:
+      - uses: dessant/label-actions@v2
+        with:
+          github-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 ```
 
 ## License
