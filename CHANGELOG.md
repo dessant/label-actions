@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.1.1](https://github.com/dessant/label-actions/compare/v2.1.0...v2.1.1) (2021-05-06)
+
+
+### Bug Fixes
+
+* declare required permissions ([c615c70](https://github.com/dessant/label-actions/commit/c615c7022ee139fe7bc3035414d35409216f9602))
+
 ## [2.1.0](https://github.com/dessant/label-actions/compare/v2.0.0...v2.1.0) (2021-05-06)
 
 
