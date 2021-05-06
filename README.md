@@ -45,7 +45,7 @@ The bot can be configured using [input parameters](https://help.github.com/en/ac
 
 - **`github-token`**
   - GitHub access token, value must be `${{ github.token }}` or an encrypted
-    secret which contains a [personal access token](#using-a-personal-access-token)
+    secret that contains a [personal access token](#using-a-personal-access-token)
   - Optional, defaults to `${{ github.token }}`
 - **`config-path`**
   - Configuration file path
