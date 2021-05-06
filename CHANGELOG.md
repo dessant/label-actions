@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.1.0](https://github.com/dessant/label-actions/compare/v2.0.0...v2.1.0) (2021-05-06)
+
+
+### Features
+
+* make github-token optional and document the use of personal access tokens ([7584390](https://github.com/dessant/label-actions/commit/7584390ccbb411f10a65d10255b6e745615ae6bf))
+
 ## [2.0.0](https://github.com/dessant/label-actions/compare/v1.0.1...v2.0.0) (2021-01-17)
 
 
