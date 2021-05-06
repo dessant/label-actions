@@ -107,6 +107,11 @@ on:
   pull_request:
     types: [labeled, unlabeled]
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
 jobs:
   job:
     runs-on: ubuntu-latest
@@ -127,6 +132,11 @@ on:
     types: [labeled, unlabeled]
   pull_request:
     types: [labeled, unlabeled]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
 
 jobs:
   job:
