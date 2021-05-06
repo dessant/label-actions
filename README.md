@@ -108,7 +108,7 @@ on:
     types: [labeled, unlabeled]
 
 jobs:
-  reaction:
+  job:
     runs-on: ubuntu-latest
     steps:
       - uses: dessant/label-actions@v2
@@ -129,7 +129,7 @@ on:
     types: [labeled, unlabeled]
 
 jobs:
-  reaction:
+  job:
     runs-on: ubuntu-latest
     steps:
       - uses: dessant/label-actions@v2
