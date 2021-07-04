@@ -245,6 +245,16 @@ pizzazz:
   comment:
     - '![](https://i.imgur.com/WuduJNk.jpg)'
     - '![](https://i.imgur.com/1D8yxOo.gif)'
+
+# Actions taken when the `review request` label is added to pull requests
+'review request':
+  prs:
+    # Assign reviewer from `reviewers`
+    reviewers:
+      - reviewer-account-name1
+      - reviewer-account-name2
+      - reviewer-account-name3
+    number-of-reviwers: 1
 ```
 
 ### Using a personal access token
