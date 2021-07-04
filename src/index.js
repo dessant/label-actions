@@ -1,6 +1,7 @@
 const core = require('@actions/core');
 const github = require('@actions/github');
 const yaml = require('js-yaml');
+const _ = require('lodash');
 
 const {configSchema, actionSchema} = require('./schema');
 
@@ -189,6 +190,16 @@ class App {
     } else {
       await action();
     }
+  }
+
+  async addReviewers(reviewers) {
+    const { owner, repo, number: pull_number } = github.context.issue
+    await this.client.pulls.requestReviewers({
+      owner,
+      repo,
+      pull_number,
+      reviewers,
+    })
   }
 }
 
