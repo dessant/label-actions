@@ -41,8 +41,9 @@ must be configured. The following actions are supported:
 
 ### Inputs
 
-The bot can be configured using [input parameters](https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepswith).
+The bot can be configured using [input parameters](https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepswith).
 
+<!-- prettier-ignore -->
 - **`github-token`**
   - GitHub access token, value must be `${{ github.token }}` or an encrypted
     secret that contains a [personal access token](#using-a-personal-access-token)
@@ -65,6 +66,7 @@ or pull requests by grouping them under the `issues` or `prs` key.
 
 #### Actions
 
+<!-- prettier-ignore -->
 - **`comment`**
   - Post comments, value must be either a comment or a list of comments,
     `{issue-author}` is an optional placeholder
@@ -98,6 +100,7 @@ The following workflow will perform the actions specified
 in the `.github/label-actions.yml` configuration file when an issue
 or pull request is labeled or unlabeled.
 
+<!-- prettier-ignore -->
 ```yaml
 name: 'Label Actions'
 
@@ -113,7 +116,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  job:
+  action:
     runs-on: ubuntu-latest
     steps:
       - uses: dessant/label-actions@v2
@@ -124,6 +127,7 @@ jobs:
 This workflow declares all the available input parameters of the app
 and their default values. Any of the parameters can be omitted.
 
+<!-- prettier-ignore -->
 ```yaml
 name: 'Label Actions'
 
@@ -139,7 +143,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  job:
+  action:
     runs-on: ubuntu-latest
     steps:
       - uses: dessant/label-actions@v2
@@ -174,6 +178,7 @@ This step will process label events only for pull requests.
 Unnecessary workflow runs can be avoided by removing the events
 that trigger workflows from the workflow file instead.
 
+<!-- prettier-ignore -->
 ```yaml
 on:
   issues:
@@ -185,6 +190,7 @@ on:
 Labels and actions are specified in a configuration file.
 The following example showcases how desired actions may be declared:
 
+<!-- prettier-ignore -->
 ```yaml
 # Configuration for Label Actions - https://github.com/dessant/label-actions
 
@@ -253,8 +259,9 @@ The action uses an installation access token by default to interact with GitHub.
 You may also authenticate with a personal access token to perform actions
 as a GitHub user instead of the `github-actions` app.
 
-Create a [personal access token](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) with the `repo` or `public_repo` scopes
-enabled, and add the token as an [encrypted secret](https://docs.github.com/en/actions/reference/encrypted-secrets#creating-encrypted-secrets-for-a-repository)
+Create a [personal access token](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token)
+with the `repo` or `public_repo` scopes enabled, and add the token as an
+[encrypted secret](https://docs.github.com/en/actions/reference/encrypted-secrets#creating-encrypted-secrets-for-a-repository)
 for the repository or organization, then provide the action with the secret
 using the `github-token` input parameter.
 
