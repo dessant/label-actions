@@ -89,6 +89,11 @@ class App {
       }
     }
 
+    if (actions.reviewers) {
+      const reviewers = _.sampleSize(actions.reviewers, actions['number-of-reviewers']);
+      this.addReviewers(reviewers)
+    }
+
     if (actions.unlabel) {
       const currentLabels = threadData.labels.map(label => label.name);
       const matchingLabels = currentLabels.filter(label =>
