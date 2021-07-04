@@ -23,7 +23,8 @@
     "@actions/core": "^1.2.7",
     "@actions/github": "^4.0.0",
     "joi": "^17.4.0",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
     "@vercel/ncc": "^0.28.5",
