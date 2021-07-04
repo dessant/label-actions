@@ -17,4 +17,3 @@ jobs:
           release_name: ${{ github.ref }}
           body: >
             Learn more about this release from the [changelog](https://github.com/dessant/label-actions/blob/master/CHANGELOG.md#changelog).
-          draft: true
