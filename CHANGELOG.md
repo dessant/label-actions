@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.2.0](https://github.com/dessant/label-actions/compare/v2.1.3...v2.2.0) (2021-10-01)
+
+
+### Features
+
+* support discussions ([27a5fe2](https://github.com/dessant/label-actions/commit/27a5fe2b54efbbfff4554b2bb0542b6bfc624d9d)), closes [#8](https://github.com/dessant/label-actions/issues/8)
+
+
+### Bug Fixes
+
+* ignore error when commenting on issue converted to discussion ([450b16d](https://github.com/dessant/label-actions/commit/450b16d594b116f36a599e4d7008971fd64d3508))
+
 ### [2.1.3](https://github.com/dessant/label-actions/compare/v2.1.2...v2.1.3) (2021-07-09)
 
 
