@@ -98,10 +98,16 @@ class App {
               body: commentBody
             });
           } else {
-            await this.client.rest.issues.createComment({
-              ...issue,
-              body: commentBody
-            });
+            try {
+              await this.client.rest.issues.createComment({
+                ...issue,
+                body: commentBody
+              });
+            } catch (err) {
+              if (!/cannot be modified.*discussion/i.test(err.message)) {
+                throw err;
+              }
+            }
           }
         }
       });
