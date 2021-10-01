@@ -3,6 +3,16 @@ const github = require('@actions/github');
 const yaml = require('js-yaml');
 
 const {configSchema, actionSchema} = require('./schema');
+const {
+  addDiscussionCommentQuery,
+  getLabelQuery,
+  createLabelQuery,
+  getDiscussionLabelsQuery,
+  addLabelsToLabelableQuery,
+  removeLabelsFromLabelableQuery,
+  lockLockableQuery,
+  unlockLockableQuery
+} = require('./data');
 
 async function run() {
   try {
@@ -33,10 +43,14 @@ class App {
       return;
     }
 
-    const threadType = payload.issue ? 'issue' : 'pr';
+    const [threadType, threadData] = payload.issue
+      ? ['issue', payload.issue]
+      : payload.pull_request
+      ? ['pr', payload.pull_request]
+      : ['discussion', payload.discussion];
 
     const processOnly = this.config['process-only'];
-    if (processOnly && processOnly !== threadType) {
+    if (processOnly && !processOnly.includes(threadType)) {
       return;
     }
 
@@ -49,10 +63,20 @@ class App {
       return;
     }
 
-    const threadData = payload.issue || payload.pull_request;
-
     const {owner, repo} = github.context.repo;
-    const issue = {owner, repo, issue_number: threadData.number};
+    let issue, discussion;
+    if (threadType === 'discussion') {
+      discussion = {
+        node_id: payload.discussion.node_id,
+        number: payload.discussion.number
+      };
+    } else {
+      issue = {
+        owner,
+        repo,
+        issue_number: threadData.number
+      };
+    }
 
     const lock = {
       active: threadData.locked,
@@ -61,79 +85,164 @@ class App {
 
     if (actions.comment) {
       core.debug('Commenting');
-      await this.ensureUnlock(issue, lock, async () => {
+      await this.ensureUnlock({issue, discussion}, lock, async () => {
         for (let commentBody of actions.comment) {
           commentBody = commentBody.replace(
             /{issue-author}/,
             threadData.user.login
           );
 
-          await this.client.rest.issues.createComment({
-            ...issue,
-            body: commentBody
-          });
+          if (threadType === 'discussion') {
+            await this.client.graphql(addDiscussionCommentQuery, {
+              discussionId: discussion.node_id,
+              body: commentBody
+            });
+          } else {
+            await this.client.rest.issues.createComment({
+              ...issue,
+              body: commentBody
+            });
+          }
         }
       });
     }
 
-    if (actions.label) {
-      const currentLabels = threadData.labels.map(label => label.name);
-      const newLabels = actions.label.filter(
-        label => !currentLabels.includes(label)
-      );
+    if (actions.label || actions.unlabel) {
+      let currentLabels;
+      if (threadType === 'discussion') {
+        ({
+          repository: {
+            discussion: {
+              labels: {nodes: currentLabels}
+            }
+          }
+        } = await this.client.graphql(getDiscussionLabelsQuery, {
+          owner,
+          repo,
+          discussion: discussion.number
+        }));
+      } else {
+        currentLabels = threadData.labels;
+      }
 
-      if (newLabels.length) {
-        core.debug('Labeling');
-        await this.client.rest.issues.addLabels({
-          ...issue,
-          labels: newLabels
-        });
+      if (actions.label) {
+        const currentLabelNames = currentLabels.map(label => label.name);
+        const newLabels = actions.label.filter(
+          label => !currentLabelNames.includes(label)
+        );
+
+        if (newLabels.length) {
+          core.debug('Labeling');
+
+          if (threadType === 'discussion') {
+            const labels = [];
+            for (const labelName of newLabels) {
+              let {
+                repository: {label}
+              } = await this.client.graphql(getLabelQuery, {
+                owner,
+                repo,
+                label: labelName
+              });
+
+              if (!label) {
+                ({
+                  createLabel: {label}
+                } = await this.client.graphql(createLabelQuery, {
+                  repositoryId: payload.repository.node_id,
+                  name: labelName,
+                  color: 'ffffff',
+                  headers: {Accept: 'application/vnd.github.bane-preview+json'}
+                }));
+              }
+
+              labels.push(label);
+            }
+
+            await this.client.graphql(addLabelsToLabelableQuery, {
+              labelableId: discussion.node_id,
+              labelIds: labels.map(label => label.id)
+            });
+          } else {
+            await this.client.rest.issues.addLabels({
+              ...issue,
+              labels: newLabels
+            });
+          }
+        }
+      }
+
+      if (actions.unlabel) {
+        const matchingLabels = currentLabels.filter(label =>
+          actions.unlabel.includes(label.name)
+        );
+
+        if (matchingLabels.length) {
+          core.debug('Unlabeling');
+
+          if (threadType === 'discussion') {
+            await this.client.graphql(removeLabelsFromLabelableQuery, {
+              labelableId: discussion.node_id,
+              labelIds: matchingLabels.map(label => label.id)
+            });
+          } else {
+            for (const label of matchingLabels) {
+              await this.client.rest.issues.removeLabel({
+                ...issue,
+                name: label.name
+              });
+            }
+          }
+        }
       }
     }
 
-    if (actions.unlabel) {
-      const currentLabels = threadData.labels.map(label => label.name);
-      const matchingLabels = currentLabels.filter(label =>
-        actions.unlabel.includes(label)
-      );
-
-      for (const label of matchingLabels) {
-        core.debug('Unlabeling');
-        await this.client.rest.issues.removeLabel({
-          ...issue,
-          name: label
-        });
+    if (threadType !== 'discussion') {
+      if (
+        actions.reopen &&
+        threadData.state === 'closed' &&
+        !threadData.merged
+      ) {
+        core.debug('Reopening');
+        await this.client.rest.issues.update({...issue, state: 'open'});
       }
-    }
 
-    if (actions.reopen && threadData.state === 'closed' && !threadData.merged) {
-      core.debug('Reopening');
-      await this.client.rest.issues.update({...issue, state: 'open'});
-    }
-
-    if (actions.close && threadData.state === 'open') {
-      core.debug('Closing');
-      await this.client.rest.issues.update({...issue, state: 'closed'});
+      if (actions.close && threadData.state === 'open') {
+        core.debug('Closing');
+        await this.client.rest.issues.update({...issue, state: 'closed'});
+      }
     }
 
     if (actions.lock && !threadData.locked) {
       core.debug('Locking');
-      const params = {...issue};
-      const lockReason = actions['lock-reason'];
-      if (lockReason) {
-        Object.assign(params, {
-          lock_reason: lockReason,
-          headers: {
-            Accept: 'application/vnd.github.sailor-v-preview+json'
-          }
+      if (threadType === 'discussion') {
+        await this.client.graphql(lockLockableQuery, {
+          lockableId: discussion.node_id
         });
+      } else {
+        const params = {...issue};
+        const lockReason = actions['lock-reason'];
+        if (lockReason) {
+          Object.assign(params, {
+            lock_reason: lockReason,
+            headers: {
+              Accept: 'application/vnd.github.sailor-v-preview+json'
+            }
+          });
+        }
+        await this.client.rest.issues.lock(params);
       }
-      await this.client.rest.issues.lock(params);
     }
 
     if (actions.unlock && threadData.locked) {
       core.debug('Unlocking');
-      await this.client.rest.issues.unlock(issue);
+      if (threadType === 'discussion') {
+        await this.client.graphql(unlockLockableQuery, {
+          lockableId: discussion.node_id
+        });
+      } else {
+        await this.client.rest.issues.unlock(issue);
+      }
     }
   }
 
@@ -141,7 +250,13 @@ class App {
     if (event === 'unlabeled') {
       label = `-${label}`;
     }
-    threadType = threadType === 'issue' ? 'issues' : 'prs';
+
+    threadType =
+      threadType === 'issue'
+        ? 'issues'
+        : threadType === 'pr'
+        ? 'prs'
+        : 'discussions';
 
     const actions = this.actions[label];
 
@@ -155,18 +270,25 @@ class App {
     }
   }
 
-  async ensureUnlock(issue, lock, action) {
+  async ensureUnlock({issue, discussion}, lock, action) {
     if (lock.active) {
-      if (!lock.hasOwnProperty('reason')) {
-        const {data: issueData} = await this.client.rest.issues.get({
-          ...issue,
-          headers: {
-            Accept: 'application/vnd.github.sailor-v-preview+json'
-          }
+      if (issue) {
+        if (!lock.hasOwnProperty('reason')) {
+          const {data: issueData} = await this.client.rest.issues.get({
+            ...issue,
+            headers: {
+              Accept: 'application/vnd.github.sailor-v-preview+json'
+            }
+          });
+          lock.reason = issueData.active_lock_reason;
+        }
+
+        await this.client.rest.issues.unlock(issue);
+      } else {
+        await this.client.graphql(unlockLockableQuery, {
+          lockableId: discussion.node_id
         });
-        lock.reason = issueData.active_lock_reason;
       }
-      await this.client.rest.issues.unlock(issue);
 
       let actionError;
       try {
@@ -175,16 +297,23 @@ class App {
         actionError = err;
       }
 
-      if (lock.reason) {
-        issue = {
-          ...issue,
-          lock_reason: lock.reason,
-          headers: {
-            Accept: 'application/vnd.github.sailor-v-preview+json'
-          }
-        };
+      if (issue) {
+        if (lock.reason) {
+          issue = {
+            ...issue,
+            lock_reason: lock.reason,
+            headers: {
+              Accept: 'application/vnd.github.sailor-v-preview+json'
+            }
+          };
+        }
+
+        await this.client.rest.issues.lock(issue);
+      } else {
+        await this.client.graphql(lockLockableQuery, {
+          lockableId: discussion.node_id
+        });
       }
-      await this.client.rest.issues.lock(issue);
 
       if (actionError) {
         throw actionError;

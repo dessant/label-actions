@@ -1,7 +1,7 @@
 # Label Actions
 
-Label Actions is a GitHub bot that performs certain actions when issues
-or pull requests are labeled or unlabeled.
+Label Actions is a GitHub bot that performs certain actions when issues,
+pull requests or discussions are labeled or unlabeled.
 
 <img width="800" src="https://raw.githubusercontent.com/dessant/label-actions/master/assets/screenshot.png">
 
@@ -16,7 +16,7 @@ please consider contributing with
 
 ## How It Works
 
-The bot performs certain actions when an issue or pull request
+The bot performs certain actions when an issue, pull request or discussion
 is labeled or unlabeled. No action is taken by default and the bot
 must be configured. The following actions are supported:
 
@@ -34,7 +34,7 @@ must be configured. The following actions are supported:
    use one of the [example workflows](#examples) to get started
 2. Create the `.github/label-actions.yml` configuration file
    based on the [example](#configuring-labels-and-actions) below
-3. Start labeling issues and pull requests
+3. Start labeling issues, pull requests and discussions
 
 ### Inputs
 
@@ -49,8 +49,9 @@ The bot can be configured using [input parameters](https://docs.github.com/en/ac
   - Configuration file path
   - Optional, defaults to `.github/label-actions.yml`
 - **`process-only`**
-  - Process label events only for issues or pull requests, value must be
-    either `issues` or `prs`
+  - Process label events only for issues, pull requests or discussions,
+    value must be a comma separated list, list items must be
+    one of `issues`, `prs` or `discussions`
   - Optional, defaults to `''`
 
 ### Configuration
@@ -58,8 +59,9 @@ The bot can be configured using [input parameters](https://docs.github.com/en/ac
 Labels and actions are specified in a configuration file.
 Actions are grouped under label names, and a label name can be prepended
 with a `-` sign to declare actions taken when a label is removed
-from a thread. Actions can be overridden or declared only for issues
-or pull requests by grouping them under the `issues` or `prs` key.
+from a thread. Actions can be overridden or declared only for issues,
+pull requests or discussions by grouping them under the
+`issues`, `prs` or `discussions` key.
 
 #### Actions
 
@@ -75,17 +77,20 @@ or pull requests by grouping them under the `issues` or `prs` key.
   - Remove labels, value must be either a label or a list of labels
   - Optional, defaults to `''`
 - **`close`**
-  - Close threads, value must be either `true` or `false`
+  - Close threads, value must be either `true` or `false`,
+    ignored for discussions
   - Optional, defaults to `false`
 - **`reopen`**
-  - Reopen threads, value must be either `true` or `false`
+  - Reopen threads, value must be either `true` or `false`,
+    ignored for discussions
   - Optional, defaults to `false`
 - **`lock`**
   - Lock threads, value must be either `true` or `false`
   - Optional, defaults to `false`
 - **`lock-reason`**
   - Reason for locking threads, value must be one
-    of `resolved`, `off-topic`, `too heated` or `spam`
+    of `resolved`, `off-topic`, `too heated` or `spam`,
+    ignored for discussions
   - Optional, defaults to `''`
 - **`unlock`**
   - Unlock threads, value must be either `true` or `false`
@@ -94,8 +99,8 @@ or pull requests by grouping them under the `issues` or `prs` key.
 ## Examples
 
 The following workflow will perform the actions specified
-in the `.github/label-actions.yml` configuration file when an issue
-or pull request is labeled or unlabeled.
+in the `.github/label-actions.yml` configuration file when an issue,
+pull request or discussion is labeled or unlabeled.
 
 <!-- prettier-ignore -->
 ```yaml
@@ -106,11 +111,14 @@ on:
     types: [labeled, unlabeled]
   pull_request:
     types: [labeled, unlabeled]
+  discussion:
+    types: [labeled, unlabeled]
 
 permissions:
   contents: read
   issues: write
   pull-requests: write
+  discussions: write
 
 jobs:
   action:
@@ -133,11 +141,14 @@ on:
     types: [labeled, unlabeled]
   pull_request:
     types: [labeled, unlabeled]
+  discussion:
+    types: [labeled, unlabeled]
 
 permissions:
   contents: read
   issues: write
   pull-requests: write
+  discussions: write
 
 jobs:
   action:
@@ -162,14 +173,14 @@ This step will process label events only for issues.
           process-only: 'issues'
 ```
 
-This step will process label events only for pull requests.
+This step will process label events only for pull requests and discussions.
 
 <!-- prettier-ignore -->
 ```yaml
     steps:
       - uses: dessant/label-actions@v2
         with:
-          process-only: 'prs'
+          process-only: 'prs, discussions'
 ```
 
 Unnecessary workflow runs can be avoided by removing the events
@@ -191,7 +202,7 @@ The following example showcases how desired actions may be declared:
 ```yaml
 # Configuration for Label Actions - https://github.com/dessant/label-actions
 
-# Actions taken when the `heated` label is added to issues or pull requests
+# The `heated` label is added to issues, pull requests or discussions
 heated:
   # Post a comment
   comment: >
@@ -205,17 +216,18 @@ heated:
   prs:
     label: 'on hold'
 
-# Actions taken when the `heated` label is removed from issues or pull requests
+# The `heated` label is removed from issues, pull requests or discussions
 -heated:
   # Unlock the thread
   unlock: true
 
-# Actions taken when the `wontfix` label is removed from issues or pull requests
+# The `wontfix` label is removed from issues
 -wontfix:
-  # Reopen the thread
-  reopen: true
+  issues:
+    # Reopen the issue
+    reopen: true
 
-# Actions taken when the `feature` label is added to issues
+# The `feature` label is added to issues
 feature:
   issues:
     # Post a comment, `{issue-author}` is an optional placeholder
@@ -224,7 +236,7 @@ feature:
     # Close the issue
     close: true
 
-# Actions taken when the `wip` label is added to pull requests
+# The `wip` label is added to pull requests
 wip:
   prs:
     # Add labels
@@ -232,7 +244,7 @@ wip:
       - 'on hold'
       - 'needs feedback'
 
-# Actions taken when the `wip` label is removed from pull requests
+# The `wip` label is removed from pull requests
 -wip:
   prs:
     # Add label
@@ -242,7 +254,13 @@ wip:
       - 'on hold'
       - 'needs feedback'
 
-# Actions taken when the `pizzazz` label is added to issues or pull requests
+# The `solved` label is added to discussions
+solved:
+  discussions:
+    # Lock the discussion
+    lock: true
+
+# The `pizzazz` label is added to issues, pull requests or discussions
 pizzazz:
   # Post comments
   comment:

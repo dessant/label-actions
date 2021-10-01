@@ -1,19 +1,31 @@
 const Joi = require('joi');
 
-const extendedJoi = Joi.extend({
-  type: 'processOnly',
-  base: Joi.string(),
-  coerce: {
-    from: 'string',
-    method(value) {
-      value = value.trim();
-      if (['issues', 'prs'].includes(value)) {
-        value = value.slice(0, -1);
-      }
+const extendedJoi = Joi.extend(joi => {
+  return {
+    type: 'processOnly',
+    base: joi.array(),
+    coerce: {
+      from: 'string',
+      method(value) {
+        value = value.trim();
 
-      return {value};
+        if (value) {
+          value = value
+            .split(',')
+            .map(item => {
+              item = item.trim();
+              if (['issues', 'prs', 'discussions'].includes(item)) {
+                item = item.slice(0, -1);
+              }
+              return item;
+            })
+            .filter(Boolean);
+        }
+
+        return {value};
+      }
     }
-  }
+  };
 });
 
 const configSchema = Joi.object({
@@ -24,7 +36,15 @@ const configSchema = Joi.object({
     .max(200)
     .default('.github/label-actions.yml'),
 
-  'process-only': extendedJoi.processOnly().valid('issue', 'pr', '').default('')
+  'process-only': Joi.alternatives().try(
+    extendedJoi
+      .processOnly()
+      .items(Joi.string().valid('issue', 'pr', 'discussion'))
+      .min(1)
+      .max(3)
+      .unique(),
+    Joi.string().trim().valid('')
+  )
 });
 
 const actions = {
@@ -84,7 +104,8 @@ const actionSchema = Joi.object()
       unlabel: actions.unlabel.default(''),
 
       issues: Joi.object().keys(actions),
-      prs: Joi.object().keys(actions)
+      prs: Joi.object().keys(actions),
+      discussions: Joi.object().keys(actions)
     })
   )
   .min(1)

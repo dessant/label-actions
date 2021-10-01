@@ -1,5 +1,5 @@
 name: 'Label Actions'
-description: 'Perform actions when issues or pull requests are labeled or unlabeled'
+description: 'Perform actions when issues, pull requests or discussions are labeled or unlabeled'
 author: 'Armin Sebastian'
 inputs:
   github-token:
@@ -9,7 +9,7 @@ inputs:
     description: 'Configuration file path'
     default: '.github/label-actions.yml'
   process-only:
-    description: 'Process label events only for issues or pull requests, value must be either `issues` or `prs`'
+    description: 'Process label events only for issues, pull requests or discussions, value must be a comma separated list, list items must be one of `issues`, `prs` or `discussions`'
     default: ''
 runs:
   using: 'node12'

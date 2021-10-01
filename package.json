@@ -1,7 +1,7 @@
 {
   "name": "label-actions",
   "version": "2.1.3",
-  "description": "A GitHub Action that performs actions when issues or pull requests are labeled or unlabeled.",
+  "description": "A GitHub Action that performs actions when issues, pull requests or discussions are labeled or unlabeled.",
   "author": "Armin Sebastian",
   "license": "MIT",
   "homepage": "https://github.com/dessant/label-actions",
@@ -38,6 +38,7 @@
     "github",
     "issues",
     "pull requests",
+    "discussions",
     "github labels",
     "comment",
     "close",
