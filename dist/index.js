@@ -134,12 +134,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getState = exports.saveState = exports.group = exports.endGroup = exports.startGroup = exports.info = exports.warning = exports.error = exports.debug = exports.isDebug = exports.setFailed = exports.setCommandEcho = exports.setOutput = exports.getBooleanInput = exports.getMultilineInput = exports.getInput = exports.addPath = exports.setSecret = exports.exportVariable = exports.ExitCode = void 0;
+exports.getIDToken = exports.getState = exports.saveState = exports.group = exports.endGroup = exports.startGroup = exports.info = exports.notice = exports.warning = exports.error = exports.debug = exports.isDebug = exports.setFailed = exports.setCommandEcho = exports.setOutput = exports.getBooleanInput = exports.getMultilineInput = exports.getInput = exports.addPath = exports.setSecret = exports.exportVariable = exports.ExitCode = void 0;
 const command_1 = __nccwpck_require__(7351);
 const file_command_1 = __nccwpck_require__(717);
 const utils_1 = __nccwpck_require__(5278);
 const os = __importStar(__nccwpck_require__(2087));
 const path = __importStar(__nccwpck_require__(5622));
+const oidc_utils_1 = __nccwpck_require__(8041);
 /**
  * The code to exit an action
  */
@@ -312,19 +313,30 @@ exports.debug = debug;
 /**
  * Adds an error issue
  * @param message error issue message. Errors will be converted to string via toString()
+ * @param properties optional properties to add to the annotation.
  */
-function error(message) {
-    command_1.issue('error', message instanceof Error ? message.toString() : message);
+function error(message, properties = {}) {
+    command_1.issueCommand('error', utils_1.toCommandProperties(properties), message instanceof Error ? message.toString() : message);
 }
 exports.error = error;
 /**
- * Adds an warning issue
+ * Adds a warning issue
  * @param message warning issue message. Errors will be converted to string via toString()
+ * @param properties optional properties to add to the annotation.
  */
-function warning(message) {
-    command_1.issue('warning', message instanceof Error ? message.toString() : message);
+function warning(message, properties = {}) {
+    command_1.issueCommand('warning', utils_1.toCommandProperties(properties), message instanceof Error ? message.toString() : message);
 }
 exports.warning = warning;
+/**
+ * Adds a notice issue
+ * @param message notice issue message. Errors will be converted to string via toString()
+ * @param properties optional properties to add to the annotation.
+ */
+function notice(message, properties = {}) {
+    command_1.issueCommand('notice', utils_1.toCommandProperties(properties), message instanceof Error ? message.toString() : message);
+}
+exports.notice = notice;
 /**
  * Writes info to log with console.log.
  * @param message info message
@@ -397,6 +409,12 @@ function getState(name) {
     return process.env[`STATE_${name}`] || '';
 }
 exports.getState = getState;
+function getIDToken(aud) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield oidc_utils_1.OidcClient.getIDToken(aud);
+    });
+}
+exports.getIDToken = getIDToken;
 //# sourceMappingURL=core.js.map
 
 /***/ }),
@@ -450,6 +468,90 @@ exports.issueCommand = issueCommand;
 
 /***/ }),
 
+/***/ 8041:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.OidcClient = void 0;
+const http_client_1 = __nccwpck_require__(9925);
+const auth_1 = __nccwpck_require__(3702);
+const core_1 = __nccwpck_require__(2186);
+class OidcClient {
+    static createHttpClient(allowRetry = true, maxRetry = 10) {
+        const requestOptions = {
+            allowRetries: allowRetry,
+            maxRetries: maxRetry
+        };
+        return new http_client_1.HttpClient('actions/oidc-client', [new auth_1.BearerCredentialHandler(OidcClient.getRequestToken())], requestOptions);
+    }
+    static getRequestToken() {
+        const token = process.env['ACTIONS_ID_TOKEN_REQUEST_TOKEN'];
+        if (!token) {
+            throw new Error('Unable to get ACTIONS_ID_TOKEN_REQUEST_TOKEN env variable');
+        }
+        return token;
+    }
+    static getIDTokenUrl() {
+        const runtimeUrl = process.env['ACTIONS_ID_TOKEN_REQUEST_URL'];
+        if (!runtimeUrl) {
+            throw new Error('Unable to get ACTIONS_ID_TOKEN_REQUEST_URL env variable');
+        }
+        return runtimeUrl;
+    }
+    static getCall(id_token_url) {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            const httpclient = OidcClient.createHttpClient();
+            const res = yield httpclient
+                .getJson(id_token_url)
+                .catch(error => {
+                throw new Error(`Failed to get ID Token. \n 
+        Error Code : ${error.statusCode}\n 
+        Error Message: ${error.result.message}`);
+            });
+            const id_token = (_a = res.result) === null || _a === void 0 ? void 0 : _a.value;
+            if (!id_token) {
+                throw new Error('Response json body do not have ID Token field');
+            }
+            return id_token;
+        });
+    }
+    static getIDToken(audience) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                // New ID Token is requested from action service
+                let id_token_url = OidcClient.getIDTokenUrl();
+                if (audience) {
+                    const encodedAudience = encodeURIComponent(audience);
+                    id_token_url = `${id_token_url}&audience=${encodedAudience}`;
+                }
+                core_1.debug(`ID token url is ${id_token_url}`);
+                const id_token = yield OidcClient.getCall(id_token_url);
+                core_1.setSecret(id_token);
+                return id_token;
+            }
+            catch (error) {
+                throw new Error(`Error message: ${error.message}`);
+            }
+        });
+    }
+}
+exports.OidcClient = OidcClient;
+//# sourceMappingURL=oidc-utils.js.map
+
+/***/ }),
+
 /***/ 5278:
 /***/ ((__unused_webpack_module, exports) => {
 
@@ -458,7 +560,7 @@ exports.issueCommand = issueCommand;
 // We use any as a valid input type
 /* eslint-disable @typescript-eslint/no-explicit-any */
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.toCommandValue = void 0;
+exports.toCommandProperties = exports.toCommandValue = void 0;
 /**
  * Sanitizes an input into a string so it can be passed into issueCommand safely
  * @param input input to sanitize into a string
@@ -473,6 +575,26 @@ function toCommandValue(input) {
     return JSON.stringify(input);
 }
 exports.toCommandValue = toCommandValue;
+/**
+ *
+ * @param annotationProperties
+ * @returns The command properties to send with the actual annotation command
+ * See IssueCommandProperties: https://github.com/actions/runner/blob/main/src/Runner.Worker/ActionCommandManager.cs#L646
+ */
+function toCommandProperties(annotationProperties) {
+    if (!Object.keys(annotationProperties).length) {
+        return {};
+    }
+    return {
+        title: annotationProperties.title,
+        file: annotationProperties.file,
+        line: annotationProperties.startLine,
+        endLine: annotationProperties.endLine,
+        col: annotationProperties.startColumn,
+        endColumn: annotationProperties.endColumn
+    };
+}
+exports.toCommandProperties = toCommandProperties;
 //# sourceMappingURL=utils.js.map
 
 /***/ }),
@@ -689,6 +811,72 @@ function getOctokitOptions(token, options) {
 }
 exports.getOctokitOptions = getOctokitOptions;
 //# sourceMappingURL=utils.js.map
+
+/***/ }),
+
+/***/ 3702:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+class BasicCredentialHandler {
+    constructor(username, password) {
+        this.username = username;
+        this.password = password;
+    }
+    prepareRequest(options) {
+        options.headers['Authorization'] =
+            'Basic ' +
+                Buffer.from(this.username + ':' + this.password).toString('base64');
+    }
+    // This handler cannot handle 401
+    canHandleAuthentication(response) {
+        return false;
+    }
+    handleAuthentication(httpClient, requestInfo, objs) {
+        return null;
+    }
+}
+exports.BasicCredentialHandler = BasicCredentialHandler;
+class BearerCredentialHandler {
+    constructor(token) {
+        this.token = token;
+    }
+    // currently implements pre-authorization
+    // TODO: support preAuth = false where it hooks on 401
+    prepareRequest(options) {
+        options.headers['Authorization'] = 'Bearer ' + this.token;
+    }
+    // This handler cannot handle 401
+    canHandleAuthentication(response) {
+        return false;
+    }
+    handleAuthentication(httpClient, requestInfo, objs) {
+        return null;
+    }
+}
+exports.BearerCredentialHandler = BearerCredentialHandler;
+class PersonalAccessTokenCredentialHandler {
+    constructor(token) {
+        this.token = token;
+    }
+    // currently implements pre-authorization
+    // TODO: support preAuth = false where it hooks on 401
+    prepareRequest(options) {
+        options.headers['Authorization'] =
+            'Basic ' + Buffer.from('PAT:' + this.token).toString('base64');
+    }
+    // This handler cannot handle 401
+    canHandleAuthentication(response) {
+        return false;
+    }
+    handleAuthentication(httpClient, requestInfo, objs) {
+        return null;
+    }
+}
+exports.PersonalAccessTokenCredentialHandler = PersonalAccessTokenCredentialHandler;
+
 
 /***/ }),
 
@@ -17366,7 +17554,7 @@ module.exports = Any.extend({
                         continue;
                     }
 
-                    if (schema.$_terms._inclusions.length &&
+                    if ((schema.$_terms._inclusions.length || schema.$_terms._requireds.length) &&
                         !isValid) {
 
                         if (stripUnknown) {
@@ -28178,25 +28366,154 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
+/***/ 7639:
+/***/ ((module) => {
+
+const addDiscussionCommentQuery = `
+mutation ($discussionId: ID!, $body: String!) {
+  addDiscussionComment(input: {discussionId: $discussionId, body: $body}) {
+    comment {
+      id
+    }
+  }
+}
+`;
+
+const getLabelQuery = `
+query ($owner: String!, $repo: String!, $label: String!) {
+  repository(owner: $owner, name: $repo) {
+    label(name: $label) {
+      id
+      name
+    }
+  }
+}
+`;
+
+const createLabelQuery = `
+mutation ($repositoryId: ID!, $name: String!, $color: String!) {
+  createLabel(input: {repositoryId: $repositoryId, name: $name, , color: $color}) {
+    label {
+      id
+      name
+    }
+  }
+}
+`;
+
+const getDiscussionLabelsQuery = `
+query ($owner: String!, $repo: String!, $discussion: Int!) {
+  repository(owner: $owner, name: $repo) {
+    discussion(number: $discussion) {
+      number
+      labels(first: 100) {
+        nodes {
+          id
+          name
+        }
+      }
+    }
+  }
+}
+`;
+
+const addLabelsToLabelableQuery = `
+mutation ($labelableId: ID!, $labelIds: [ID!]!) {
+  addLabelsToLabelable(input: {labelableId: $labelableId, labelIds: $labelIds}) {
+    labelable {
+      labels(first: 0) {
+        edges {
+          node {
+            id
+          }
+        }
+      }
+    }
+  }
+}
+`;
+
+const removeLabelsFromLabelableQuery = `
+mutation ($labelableId: ID!, $labelIds: [ID!]!) {
+  removeLabelsFromLabelable(input: {labelableId: $labelableId, labelIds: $labelIds}) {
+    labelable {
+      labels(first: 0) {
+        edges {
+          node {
+            id
+          }
+        }
+      }
+    }
+  }
+}
+`;
+
+const lockLockableQuery = `
+mutation ($lockableId: ID!) {
+  lockLockable(input: {lockableId: $lockableId}) {
+    lockedRecord {
+      locked
+    }
+  }
+}
+`;
+
+const unlockLockableQuery = `
+mutation ($lockableId: ID!) {
+  unlockLockable(input: {lockableId: $lockableId}) {
+    unlockedRecord {
+      locked
+    }
+  }
+}
+`;
+
+module.exports = {
+  addDiscussionCommentQuery,
+  getLabelQuery,
+  createLabelQuery,
+  getDiscussionLabelsQuery,
+  addLabelsToLabelableQuery,
+  removeLabelsFromLabelableQuery,
+  lockLockableQuery,
+  unlockLockableQuery
+};
+
+
+/***/ }),
+
 /***/ 2399:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 const Joi = __nccwpck_require__(918);
 
-const extendedJoi = Joi.extend({
-  type: 'processOnly',
-  base: Joi.string(),
-  coerce: {
-    from: 'string',
-    method(value) {
-      value = value.trim();
-      if (['issues', 'prs'].includes(value)) {
-        value = value.slice(0, -1);
-      }
+const extendedJoi = Joi.extend(joi => {
+  return {
+    type: 'processOnly',
+    base: joi.array(),
+    coerce: {
+      from: 'string',
+      method(value) {
+        value = value.trim();
 
-      return {value};
+        if (value) {
+          value = value
+            .split(',')
+            .map(item => {
+              item = item.trim();
+              if (['issues', 'prs', 'discussions'].includes(item)) {
+                item = item.slice(0, -1);
+              }
+              return item;
+            })
+            .filter(Boolean);
+        }
+
+        return {value};
+      }
     }
-  }
+  };
 });
 
 const configSchema = Joi.object({
@@ -28207,7 +28524,15 @@ const configSchema = Joi.object({
     .max(200)
     .default('.github/label-actions.yml'),
 
-  'process-only': extendedJoi.processOnly().valid('issue', 'pr', '').default('')
+  'process-only': Joi.alternatives().try(
+    extendedJoi
+      .processOnly()
+      .items(Joi.string().valid('issue', 'pr', 'discussion'))
+      .min(1)
+      .max(3)
+      .unique(),
+    Joi.string().trim().valid('')
+  )
 });
 
 const actions = {
@@ -28267,7 +28592,8 @@ const actionSchema = Joi.object()
       unlabel: actions.unlabel.default(''),
 
       issues: Joi.object().keys(actions),
-      prs: Joi.object().keys(actions)
+      prs: Joi.object().keys(actions),
+      discussions: Joi.object().keys(actions)
     })
   )
   .min(1)
@@ -28346,7 +28672,7 @@ module.exports = JSON.parse('[["0","\\u0000",128],["a1","｡",62],["8140","　�
 /***/ ((module) => {
 
 "use strict";
-module.exports = JSON.parse('{"_from":"joi@^17.4.0","_id":"joi@17.4.0","_inBundle":false,"_integrity":"sha512-F4WiW2xaV6wc1jxete70Rw4V/VuMd6IN+a5ilZsxG4uYtUXWu2kq9W5P2dz30e7Gmw8RCbY/u/uk+dMPma9tAg==","_location":"/joi","_phantomChildren":{},"_requested":{"type":"range","registry":true,"raw":"joi@^17.4.0","name":"joi","escapedName":"joi","rawSpec":"^17.4.0","saveSpec":null,"fetchSpec":"^17.4.0"},"_requiredBy":["/"],"_resolved":"https://registry.npmjs.org/joi/-/joi-17.4.0.tgz","_shasum":"b5c2277c8519e016316e49ababd41a1908d9ef20","_spec":"joi@^17.4.0","_where":"/media/s1/dev/pr/label-actions","browser":"dist/joi-browser.min.js","bugs":{"url":"https://github.com/sideway/joi/issues"},"bundleDependencies":false,"dependencies":{"@hapi/hoek":"^9.0.0","@hapi/topo":"^5.0.0","@sideway/address":"^4.1.0","@sideway/formula":"^3.0.0","@sideway/pinpoint":"^2.0.0"},"deprecated":false,"description":"Object schema validation","devDependencies":{"@hapi/bourne":"2.x.x","@hapi/code":"8.x.x","@hapi/joi-legacy-test":"npm:@hapi/joi@15.x.x","@hapi/lab":"24.x.x","typescript":"4.0.x"},"files":["lib/**/*","dist/*"],"homepage":"https://github.com/sideway/joi#readme","keywords":["schema","validation"],"license":"BSD-3-Clause","main":"lib/index.js","name":"joi","repository":{"type":"git","url":"git://github.com/sideway/joi.git"},"scripts":{"prepublishOnly":"cd browser && npm install && npm run build","test":"lab -t 100 -a @hapi/code -L -Y","test-cov-html":"lab -r html -o coverage.html -a @hapi/code"},"types":"lib/index.d.ts","version":"17.4.0"}');
+module.exports = JSON.parse('{"_args":[["joi@17.4.2","/app"]],"_from":"joi@17.4.2","_id":"joi@17.4.2","_inBundle":false,"_integrity":"sha512-Lm56PP+n0+Z2A2rfRvsfWVDXGEWjXxatPopkQ8qQ5mxCEhwHG+Ettgg5o98FFaxilOxozoa14cFhrE/hOzh/Nw==","_location":"/joi","_phantomChildren":{},"_requested":{"type":"version","registry":true,"raw":"joi@17.4.2","name":"joi","escapedName":"joi","rawSpec":"17.4.2","saveSpec":null,"fetchSpec":"17.4.2"},"_requiredBy":["/"],"_resolved":"https://registry.npmjs.org/joi/-/joi-17.4.2.tgz","_spec":"17.4.2","_where":"/app","browser":"dist/joi-browser.min.js","bugs":{"url":"https://github.com/sideway/joi/issues"},"dependencies":{"@hapi/hoek":"^9.0.0","@hapi/topo":"^5.0.0","@sideway/address":"^4.1.0","@sideway/formula":"^3.0.0","@sideway/pinpoint":"^2.0.0"},"description":"Object schema validation","devDependencies":{"@hapi/bourne":"2.x.x","@hapi/code":"8.x.x","@hapi/joi-legacy-test":"npm:@hapi/joi@15.x.x","@hapi/lab":"24.x.x","typescript":"4.3.x"},"files":["lib/**/*","dist/*"],"homepage":"https://github.com/sideway/joi#readme","keywords":["schema","validation"],"license":"BSD-3-Clause","main":"lib/index.js","name":"joi","repository":{"type":"git","url":"git://github.com/sideway/joi.git"},"scripts":{"prepublishOnly":"cd browser && npm install && npm run build","test":"lab -t 100 -a @hapi/code -L -Y","test-cov-html":"lab -r html -o coverage.html -a @hapi/code"},"types":"lib/index.d.ts","version":"17.4.2"}');
 
 /***/ }),
 
@@ -28354,7 +28680,7 @@ module.exports = JSON.parse('{"_from":"joi@^17.4.0","_id":"joi@17.4.0","_inBundl
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("assert");;
+module.exports = require("assert");
 
 /***/ }),
 
@@ -28362,7 +28688,7 @@ module.exports = require("assert");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("buffer");;
+module.exports = require("buffer");
 
 /***/ }),
 
@@ -28370,7 +28696,7 @@ module.exports = require("buffer");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("events");;
+module.exports = require("events");
 
 /***/ }),
 
@@ -28378,7 +28704,7 @@ module.exports = require("events");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("fs");;
+module.exports = require("fs");
 
 /***/ }),
 
@@ -28386,7 +28712,7 @@ module.exports = require("fs");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("http");;
+module.exports = require("http");
 
 /***/ }),
 
@@ -28394,7 +28720,7 @@ module.exports = require("http");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("https");;
+module.exports = require("https");
 
 /***/ }),
 
@@ -28402,7 +28728,7 @@ module.exports = require("https");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("net");;
+module.exports = require("net");
 
 /***/ }),
 
@@ -28410,7 +28736,7 @@ module.exports = require("net");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("os");;
+module.exports = require("os");
 
 /***/ }),
 
@@ -28418,7 +28744,7 @@ module.exports = require("os");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("path");;
+module.exports = require("path");
 
 /***/ }),
 
@@ -28426,7 +28752,7 @@ module.exports = require("path");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("stream");;
+module.exports = require("stream");
 
 /***/ }),
 
@@ -28434,7 +28760,7 @@ module.exports = require("stream");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("string_decoder");;
+module.exports = require("string_decoder");
 
 /***/ }),
 
@@ -28442,7 +28768,7 @@ module.exports = require("string_decoder");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("tls");;
+module.exports = require("tls");
 
 /***/ }),
 
@@ -28450,7 +28776,7 @@ module.exports = require("tls");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("url");;
+module.exports = require("url");
 
 /***/ }),
 
@@ -28458,7 +28784,7 @@ module.exports = require("url");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("util");;
+module.exports = require("util");
 
 /***/ }),
 
@@ -28466,7 +28792,7 @@ module.exports = require("util");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("zlib");;
+module.exports = require("zlib");
 
 /***/ })
 
@@ -28505,7 +28831,9 @@ module.exports = require("zlib");;
 /************************************************************************/
 /******/ 	/* webpack/runtime/compat */
 /******/ 	
-/******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";/************************************************************************/
+/******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
+/******/ 	
+/************************************************************************/
 var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
 (() => {
@@ -28514,6 +28842,16 @@ const github = __nccwpck_require__(5438);
 const yaml = __nccwpck_require__(1917);
 
 const {configSchema, actionSchema} = __nccwpck_require__(2399);
+const {
+  addDiscussionCommentQuery,
+  getLabelQuery,
+  createLabelQuery,
+  getDiscussionLabelsQuery,
+  addLabelsToLabelableQuery,
+  removeLabelsFromLabelableQuery,
+  lockLockableQuery,
+  unlockLockableQuery
+} = __nccwpck_require__(7639);
 
 async function run() {
   try {
@@ -28544,10 +28882,14 @@ class App {
       return;
     }
 
-    const threadType = payload.issue ? 'issue' : 'pr';
+    const [threadType, threadData] = payload.issue
+      ? ['issue', payload.issue]
+      : payload.pull_request
+      ? ['pr', payload.pull_request]
+      : ['discussion', payload.discussion];
 
     const processOnly = this.config['process-only'];
-    if (processOnly && processOnly !== threadType) {
+    if (processOnly && !processOnly.includes(threadType)) {
       return;
     }
 
@@ -28560,10 +28902,20 @@ class App {
       return;
     }
 
-    const threadData = payload.issue || payload.pull_request;
-
     const {owner, repo} = github.context.repo;
-    const issue = {owner, repo, issue_number: threadData.number};
+    let issue, discussion;
+    if (threadType === 'discussion') {
+      discussion = {
+        node_id: payload.discussion.node_id,
+        number: payload.discussion.number
+      };
+    } else {
+      issue = {
+        owner,
+        repo,
+        issue_number: threadData.number
+      };
+    }
 
     const lock = {
       active: threadData.locked,
@@ -28572,79 +28924,170 @@ class App {
 
     if (actions.comment) {
       core.debug('Commenting');
-      await this.ensureUnlock(issue, lock, async () => {
+      await this.ensureUnlock({issue, discussion}, lock, async () => {
         for (let commentBody of actions.comment) {
           commentBody = commentBody.replace(
             /{issue-author}/,
             threadData.user.login
           );
 
-          await this.client.rest.issues.createComment({
-            ...issue,
-            body: commentBody
-          });
+          if (threadType === 'discussion') {
+            await this.client.graphql(addDiscussionCommentQuery, {
+              discussionId: discussion.node_id,
+              body: commentBody
+            });
+          } else {
+            try {
+              await this.client.rest.issues.createComment({
+                ...issue,
+                body: commentBody
+              });
+            } catch (err) {
+              if (!/cannot be modified.*discussion/i.test(err.message)) {
+                throw err;
+              }
+            }
+          }
         }
       });
     }
 
-    if (actions.label) {
-      const currentLabels = threadData.labels.map(label => label.name);
-      const newLabels = actions.label.filter(
-        label => !currentLabels.includes(label)
-      );
+    if (actions.label || actions.unlabel) {
+      let currentLabels;
+      if (threadType === 'discussion') {
+        ({
+          repository: {
+            discussion: {
+              labels: {nodes: currentLabels}
+            }
+          }
+        } = await this.client.graphql(getDiscussionLabelsQuery, {
+          owner,
+          repo,
+          discussion: discussion.number
+        }));
+      } else {
+        currentLabels = threadData.labels;
+      }
 
-      if (newLabels.length) {
-        core.debug('Labeling');
-        await this.client.rest.issues.addLabels({
-          ...issue,
-          labels: newLabels
-        });
+      if (actions.label) {
+        const currentLabelNames = currentLabels.map(label => label.name);
+        const newLabels = actions.label.filter(
+          label => !currentLabelNames.includes(label)
+        );
+
+        if (newLabels.length) {
+          core.debug('Labeling');
+
+          if (threadType === 'discussion') {
+            const labels = [];
+            for (const labelName of newLabels) {
+              let {
+                repository: {label}
+              } = await this.client.graphql(getLabelQuery, {
+                owner,
+                repo,
+                label: labelName
+              });
+
+              if (!label) {
+                ({
+                  createLabel: {label}
+                } = await this.client.graphql(createLabelQuery, {
+                  repositoryId: payload.repository.node_id,
+                  name: labelName,
+                  color: 'ffffff',
+                  headers: {Accept: 'application/vnd.github.bane-preview+json'}
+                }));
+              }
+
+              labels.push(label);
+            }
+
+            await this.client.graphql(addLabelsToLabelableQuery, {
+              labelableId: discussion.node_id,
+              labelIds: labels.map(label => label.id)
+            });
+          } else {
+            await this.client.rest.issues.addLabels({
+              ...issue,
+              labels: newLabels
+            });
+          }
+        }
+      }
+
+      if (actions.unlabel) {
+        const matchingLabels = currentLabels.filter(label =>
+          actions.unlabel.includes(label.name)
+        );
+
+        if (matchingLabels.length) {
+          core.debug('Unlabeling');
+
+          if (threadType === 'discussion') {
+            await this.client.graphql(removeLabelsFromLabelableQuery, {
+              labelableId: discussion.node_id,
+              labelIds: matchingLabels.map(label => label.id)
+            });
+          } else {
+            for (const label of matchingLabels) {
+              await this.client.rest.issues.removeLabel({
+                ...issue,
+                name: label.name
+              });
+            }
+          }
+        }
       }
     }
 
-    if (actions.unlabel) {
-      const currentLabels = threadData.labels.map(label => label.name);
-      const matchingLabels = currentLabels.filter(label =>
-        actions.unlabel.includes(label)
-      );
-
-      for (const label of matchingLabels) {
-        core.debug('Unlabeling');
-        await this.client.rest.issues.removeLabel({
-          ...issue,
-          name: label
-        });
+    if (threadType !== 'discussion') {
+      if (
+        actions.reopen &&
+        threadData.state === 'closed' &&
+        !threadData.merged
+      ) {
+        core.debug('Reopening');
+        await this.client.rest.issues.update({...issue, state: 'open'});
       }
-    }
 
-    if (actions.reopen && threadData.state === 'closed' && !threadData.merged) {
-      core.debug('Reopening');
-      await this.client.rest.issues.update({...issue, state: 'open'});
-    }
-
-    if (actions.close && threadData.state === 'open') {
-      core.debug('Closing');
-      await this.client.rest.issues.update({...issue, state: 'closed'});
+      if (actions.close && threadData.state === 'open') {
+        core.debug('Closing');
+        await this.client.rest.issues.update({...issue, state: 'closed'});
+      }
     }
 
     if (actions.lock && !threadData.locked) {
       core.debug('Locking');
-      const params = {...issue};
-      const lockReason = actions['lock-reason'];
-      if (lockReason) {
-        Object.assign(params, {
-          lock_reason: lockReason,
-          headers: {
-            Accept: 'application/vnd.github.sailor-v-preview+json'
-          }
+      if (threadType === 'discussion') {
+        await this.client.graphql(lockLockableQuery, {
+          lockableId: discussion.node_id
         });
+      } else {
+        const params = {...issue};
+        const lockReason = actions['lock-reason'];
+        if (lockReason) {
+          Object.assign(params, {
+            lock_reason: lockReason,
+            headers: {
+              Accept: 'application/vnd.github.sailor-v-preview+json'
+            }
+          });
+        }
+        await this.client.rest.issues.lock(params);
       }
-      await this.client.rest.issues.lock(params);
     }
 
     if (actions.unlock && threadData.locked) {
       core.debug('Unlocking');
-      await this.client.rest.issues.unlock(issue);
+      if (threadType === 'discussion') {
+        await this.client.graphql(unlockLockableQuery, {
+          lockableId: discussion.node_id
+        });
+      } else {
+        await this.client.rest.issues.unlock(issue);
+      }
     }
   }
 
@@ -28652,7 +29095,13 @@ class App {
     if (event === 'unlabeled') {
       label = `-${label}`;
     }
-    threadType = threadType === 'issue' ? 'issues' : 'prs';
+
+    threadType =
+      threadType === 'issue'
+        ? 'issues'
+        : threadType === 'pr'
+        ? 'prs'
+        : 'discussions';
 
     const actions = this.actions[label];
 
@@ -28666,18 +29115,25 @@ class App {
     }
   }
 
-  async ensureUnlock(issue, lock, action) {
+  async ensureUnlock({issue, discussion}, lock, action) {
     if (lock.active) {
-      if (!lock.hasOwnProperty('reason')) {
-        const {data: issueData} = await this.client.rest.issues.get({
-          ...issue,
-          headers: {
-            Accept: 'application/vnd.github.sailor-v-preview+json'
-          }
+      if (issue) {
+        if (!lock.hasOwnProperty('reason')) {
+          const {data: issueData} = await this.client.rest.issues.get({
+            ...issue,
+            headers: {
+              Accept: 'application/vnd.github.sailor-v-preview+json'
+            }
+          });
+          lock.reason = issueData.active_lock_reason;
+        }
+
+        await this.client.rest.issues.unlock(issue);
+      } else {
+        await this.client.graphql(unlockLockableQuery, {
+          lockableId: discussion.node_id
         });
-        lock.reason = issueData.active_lock_reason;
       }
-      await this.client.rest.issues.unlock(issue);
 
       let actionError;
       try {
@@ -28686,16 +29142,23 @@ class App {
         actionError = err;
       }
 
-      if (lock.reason) {
-        issue = {
-          ...issue,
-          lock_reason: lock.reason,
-          headers: {
-            Accept: 'application/vnd.github.sailor-v-preview+json'
-          }
-        };
+      if (issue) {
+        if (lock.reason) {
+          issue = {
+            ...issue,
+            lock_reason: lock.reason,
+            headers: {
+              Accept: 'application/vnd.github.sailor-v-preview+json'
+            }
+          };
+        }
+
+        await this.client.rest.issues.lock(issue);
+      } else {
+        await this.client.graphql(lockLockableQuery, {
+          lockableId: discussion.node_id
+        });
       }
-      await this.client.rest.issues.lock(issue);
 
       if (actionError) {
         throw actionError;
