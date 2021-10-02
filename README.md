@@ -99,7 +99,7 @@ pull requests or discussions by grouping them under the
 ## Examples
 
 The following workflow will perform the actions specified
-in the `.github/label-actions.yml` configuration file when an issue,
+in the `.github/workflows/label-actions.yml` configuration file when an issue,
 pull request or discussion is labeled or unlabeled.
 
 <!-- prettier-ignore -->
