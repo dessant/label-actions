@@ -15,8 +15,8 @@ jobs:
       - name: Get release information
         id: release_info
         run: |
-          echo ::set-output name=TAG::${GITHUB_REF/refs\/tags\//}
-          echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\/v/}
+          echo ::setOutput name=TAG::${GITHUB_REF/refs\/tags\//}
+          echo ::setOutput name=VERSION::${GITHUB_REF/refs\/tags\/v/}
       - name: Create GitHub release
         uses: softprops/action-gh-release@v1
         with:
