@@ -1,6 +1,6 @@
 {
   "name": "label-actions",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "A GitHub Action that performs actions when issues, pull requests or discussions are labeled or unlabeled.",
   "author": "Armin Sebastian",
   "license": "MIT",
