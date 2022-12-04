@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.0.0](https://github.com/dessant/label-actions/compare/v2.2.0...v3.0.0) (2022-12-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* the action now requires Node.js 16
+
+### Bug Fixes
+
+* update dependencies ([fed5fc9](https://github.com/dessant/label-actions/commit/fed5fc9e1ee227160343a3802054f79e9c37335d))
+* update docs ([71730fb](https://github.com/dessant/label-actions/commit/71730fb75e9e24af879f7a6700c00b9ea6cc22ec))
+
 ## [2.2.0](https://github.com/dessant/label-actions/compare/v2.1.3...v2.2.0) (2021-10-01)
 
 
