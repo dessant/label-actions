@@ -78,13 +78,15 @@ class App {
       };
     }
 
-    const lock = {
-      active: threadData.locked,
-      reason: threadData.active_lock_reason
-    };
-
     if (actions.comment) {
       core.debug('Commenting');
+
+      const lock = {
+        active: threadData.locked,
+        reason: threadData.active_lock_reason,
+        restoreLock: !actions.unlock
+      };
+
       await this.ensureUnlock({issue, discussion}, lock, async () => {
         for (let commentBody of actions.comment) {
           commentBody = commentBody.replace(
@@ -303,22 +305,24 @@ class App {
         actionError = err;
       }
 
-      if (issue) {
-        if (lock.reason) {
-          issue = {
-            ...issue,
-            lock_reason: lock.reason,
-            headers: {
-              Accept: 'application/vnd.github.sailor-v-preview+json'
-            }
-          };
-        }
+      if (lock.restoreLock) {
+        if (issue) {
+          if (lock.reason) {
+            issue = {
+              ...issue,
+              lock_reason: lock.reason,
+              headers: {
+                Accept: 'application/vnd.github.sailor-v-preview+json'
+              }
+            };
+          }
 
-        await this.client.rest.issues.lock(issue);
-      } else {
-        await this.client.graphql(lockLockableQuery, {
-          lockableId: discussion.node_id
-        });
+          await this.client.rest.issues.lock(issue);
+        } else {
+          await this.client.graphql(lockLockableQuery, {
+            lockableId: discussion.node_id
+          });
+        }
       }
 
       if (actionError) {
