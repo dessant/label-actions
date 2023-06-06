@@ -229,15 +229,12 @@ class App {
         });
       } else {
         const params = {...issue};
+
         const lockReason = actions['lock-reason'];
         if (lockReason) {
-          Object.assign(params, {
-            lock_reason: lockReason,
-            headers: {
-              Accept: 'application/vnd.github.sailor-v-preview+json'
-            }
-          });
+          params.lock_reason = lockReason;
         }
+
         await this.client.rest.issues.lock(params);
       }
     }
@@ -282,12 +279,7 @@ class App {
     if (lock.active) {
       if (issue) {
         if (!lock.hasOwnProperty('reason')) {
-          const {data: issueData} = await this.client.rest.issues.get({
-            ...issue,
-            headers: {
-              Accept: 'application/vnd.github.sailor-v-preview+json'
-            }
-          });
+          const {data: issueData} = await this.client.rest.issues.get(issue);
           lock.reason = issueData.active_lock_reason;
         }
 
@@ -308,13 +300,7 @@ class App {
       if (lock.restoreLock) {
         if (issue) {
           if (lock.reason) {
-            issue = {
-              ...issue,
-              lock_reason: lock.reason,
-              headers: {
-                Accept: 'application/vnd.github.sailor-v-preview+json'
-              }
-            };
+            issue = {...issue, lock_reason: lock.reason};
           }
 
           await this.client.rest.issues.lock(issue);
