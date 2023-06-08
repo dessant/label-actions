@@ -1942,6 +1942,10 @@ function checkBypass(reqUrl) {
     if (!reqUrl.hostname) {
         return false;
     }
+    const reqHost = reqUrl.hostname;
+    if (isLoopbackAddress(reqHost)) {
+        return true;
+    }
     const noProxy = process.env['no_proxy'] || process.env['NO_PROXY'] || '';
     if (!noProxy) {
         return false;
@@ -1967,13 +1971,24 @@ function checkBypass(reqUrl) {
         .split(',')
         .map(x => x.trim().toUpperCase())
         .filter(x => x)) {
-        if (upperReqHosts.some(x => x === upperNoProxyItem)) {
+        if (upperNoProxyItem === '*' ||
+            upperReqHosts.some(x => x === upperNoProxyItem ||
+                x.endsWith(`.${upperNoProxyItem}`) ||
+                (upperNoProxyItem.startsWith('.') &&
+                    x.endsWith(`${upperNoProxyItem}`)))) {
             return true;
         }
     }
     return false;
 }
 exports.checkBypass = checkBypass;
+function isLoopbackAddress(host) {
+    const hostLower = host.toLowerCase();
+    return (hostLower === 'localhost' ||
+        hostLower.startsWith('127.') ||
+        hostLower.startsWith('[::1]') ||
+        hostLower.startsWith('[0:0:0:0:0:0:0:1]'));
+}
 //# sourceMappingURL=proxy.js.map
 
 /***/ }),
@@ -7821,7 +7836,7 @@ const internals = {
         '[': ']'
     },
 
-    numberRx: /^(?:[0-9]*\.?[0-9]*){1}$/,
+    numberRx: /^(?:[0-9]*(\.[0-9]*)?){1}$/,
     tokenRx: /^[\w\$\#\.\@\:\{\}]+$/,
 
     symbol: Symbol('formula'),
@@ -16151,6 +16166,8 @@ module.exports = internals.State = class {
         if (this.mainstay.shadow) {
             this._snapshot = Clone(this.mainstay.shadow.node(this.path));
         }
+
+        this.mainstay.snapshot();
     }
 
     restore() {
@@ -16159,6 +16176,18 @@ module.exports = internals.State = class {
             this.mainstay.shadow.override(this.path, this._snapshot);
             this._snapshot = undefined;
         }
+
+        this.mainstay.restore();
+    }
+
+    commit() {
+
+        if (this.mainstay.shadow) {
+            this.mainstay.shadow.override(this.path, this._snapshot);
+            this._snapshot = undefined;
+        }
+
+        this.mainstay.commit();
     }
 };
 
@@ -17115,6 +17144,7 @@ module.exports = Any.extend({
                 const result = item.schema.$_validate(value, localState, prefs);
                 if (!result.errors) {
                     matched.push(result.value);
+                    localState.commit();
                 }
                 else {
                     failed.push(result.errors);
@@ -17172,6 +17202,7 @@ module.exports = Any.extend({
 
                 const result = item.schema.$_validate(value, localState, prefs);
                 if (!result.errors) {
+                    localState.commit();
                     return result;
                 }
 
@@ -17831,6 +17862,7 @@ module.exports = Any.extend({
                         requiredChecks[j] = res;
 
                         if (!res.errors) {
+                            localState.commit();
                             value[i] = res.value;
                             isValid = true;
                             internals.fastSplice(requireds, j);
@@ -17876,6 +17908,7 @@ module.exports = Any.extend({
 
                             res = inclusion.$_validate(item, localState, prefs);
                             if (!res.errors) {
+                                localState.commit();
                                 if (inclusion._flags.result === 'strip') {
                                     internals.fastSplice(value, i);
                                     --i;
@@ -21662,35 +21695,85 @@ exports.entryAsync = async function (value, schema, prefs) {
 
     if (mainstay.externals.length) {
         let root = result.value;
-        for (const { method, path, label } of mainstay.externals) {
+        const errors = [];
+        for (const external of mainstay.externals) {
+            const path = external.state.path;
+            const linked = external.schema.type === 'link' ? mainstay.links.get(external.schema) : null;
             let node = root;
             let key;
             let parent;
 
+            const ancestors = path.length ? [root] : [];
+            const original = path.length ? Reach(value, path) : value;
+
             if (path.length) {
                 key = path[path.length - 1];
-                parent = Reach(root, path.slice(0, -1));
+
+                let current = root;
+                for (const segment of path.slice(0, -1)) {
+                    current = current[segment];
+                    ancestors.unshift(current);
+                }
+
+                parent = ancestors[0];
                 node = parent[key];
             }
 
             try {
-                const output = await method(node, { prefs });
+                const createError = (code, local) => (linked || external.schema).$_createError(code, node, local, external.state, settings);
+                const output = await external.method(node, {
+                    schema: external.schema,
+                    linked,
+                    state: external.state,
+                    prefs,
+                    original,
+                    error: createError,
+                    errorsArray: internals.errorsArray,
+                    warn: (code, local) => mainstay.warnings.push((linked || external.schema).$_createError(code, node, local, external.state, settings)),
+                    message: (messages, local) => (linked || external.schema).$_createError('external', node, local, external.state, settings, { messages })
+                });
+
                 if (output === undefined ||
                     output === node) {
 
                     continue;
                 }
 
+                if (output instanceof Errors.Report) {
+                    mainstay.tracer.log(external.schema, external.state, 'rule', 'external', 'error');
+                    errors.push(output);
+
+                    if (settings.abortEarly) {
+                        break;
+                    }
+
+                    continue;
+                }
+
+                if (Array.isArray(output) &&
+                    output[Common.symbols.errors]) {
+                    mainstay.tracer.log(external.schema, external.state, 'rule', 'external', 'error');
+                    errors.push(...output);
+
+                    if (settings.abortEarly) {
+                        break;
+                    }
+
+                    continue;
+                }
+
                 if (parent) {
+                    mainstay.tracer.value(external.state, 'rule', node, output, 'external');
                     parent[key] = output;
                 }
                 else {
+                    mainstay.tracer.value(external.state, 'rule', root, output, 'external');
                     root = output;
                 }
             }
             catch (err) {
                 if (settings.errors.label) {
-                    err.message += ` (${label})`;       // Change message to include path
+                    err.message += ` (${(external.label)})`;       // Change message to include path
                 }
 
                 throw err;
@@ -21698,6 +21781,16 @@ exports.entryAsync = async function (value, schema, prefs) {
         }
 
         result.value = root;
+
+        if (errors.length) {
+            result.error = Errors.process(errors, value, settings);
+
+            if (mainstay.debug) {
+                result.error.debug = mainstay.debug;
+            }
+
+            throw result.error;
+        }
     }
 
     if (!settings.warnings &&
@@ -21724,6 +21817,43 @@ exports.entryAsync = async function (value, schema, prefs) {
 };
 
 
+internals.Mainstay = class {
+
+    constructor(tracer, debug, links) {
+
+        this.externals = [];
+        this.warnings = [];
+        this.tracer = tracer;
+        this.debug = debug;
+        this.links = links;
+        this.shadow = null;
+        this.artifacts = null;
+
+        this._snapshots = [];
+    }
+
+    snapshot() {
+
+        this._snapshots.push({
+            externals: this.externals.slice(),
+            warnings: this.warnings.slice()
+        });
+    }
+
+    restore() {
+
+        const snapshot = this._snapshots.pop();
+        this.externals = snapshot.externals;
+        this.warnings = snapshot.warnings;
+    }
+
+    commit() {
+
+        this._snapshots.pop();
+    }
+};
+
+
 internals.entry = function (value, schema, prefs) {
 
     // Prepare state
@@ -21731,7 +21861,7 @@ internals.entry = function (value, schema, prefs) {
     const { tracer, cleanup } = internals.tracer(schema, prefs);
     const debug = prefs.debug ? [] : null;
     const links = schema._ids._schemaChain ? new Map() : null;
-    const mainstay = { externals: [], warnings: [], tracer, debug, links };
+    const mainstay = new internals.Mainstay(tracer, debug, links);
     const schemas = schema._ids._schemaChain ? [{ schema }] : null;
     const state = new State([], [], { mainstay, schemas });
 
@@ -22109,7 +22239,7 @@ internals.finalize = function (value, errors, helpers) {
         prefs._externals !== false) {                       // Disabled for matching
 
         for (const { method } of schema.$_terms.externals) {
-            state.mainstay.externals.push({ method, path: state.path, label: Errors.label(schema._flags, state, prefs) });
+            state.mainstay.externals.push({ method, schema, state, label: Errors.label(schema._flags, state, prefs) });
         }
     }
 
@@ -28053,6 +28183,20 @@ const isDomainOrSubdomain = function isDomainOrSubdomain(destination, original) 
 };
 
 /**
+ * isSameProtocol reports whether the two provided URLs use the same protocol.
+ *
+ * Both domains must already be in canonical form.
+ * @param {string|URL} original
+ * @param {string|URL} destination
+ */
+const isSameProtocol = function isSameProtocol(destination, original) {
+	const orig = new URL$1(original).protocol;
+	const dest = new URL$1(destination).protocol;
+
+	return orig === dest;
+};
+
+/**
  * Fetch function
  *
  * @param   Mixed    url   Absolute url or Request instance
@@ -28083,7 +28227,7 @@ function fetch(url, opts) {
 			let error = new AbortError('The user aborted a request.');
 			reject(error);
 			if (request.body && request.body instanceof Stream.Readable) {
-				request.body.destroy(error);
+				destroyStream(request.body, error);
 			}
 			if (!response || !response.body) return;
 			response.body.emit('error', error);
@@ -28124,8 +28268,42 @@ function fetch(url, opts) {
 
 		req.on('error', function (err) {
 			reject(new FetchError(`request to ${request.url} failed, reason: ${err.message}`, 'system', err));
+
+			if (response && response.body) {
+				destroyStream(response.body, err);
+			}
+
 			finalize();
 		});
+
+		fixResponseChunkedTransferBadEnding(req, function (err) {
+			if (signal && signal.aborted) {
+				return;
+			}
+
+			if (response && response.body) {
+				destroyStream(response.body, err);
+			}
+		});
+
+		/* c8 ignore next 18 */
+		if (parseInt(process.version.substring(1)) < 14) {
+			// Before Node.js 14, pipeline() does not fully support async iterators and does not always
+			// properly handle when the socket close/end events are out of order.
+			req.on('socket', function (s) {
+				s.addListener('close', function (hadError) {
+					// if a data listener is still present we didn't end cleanly
+					const hasDataListener = s.listenerCount('data') > 0;
+
+					// if end happened before close but the socket didn't emit an error, do it now
+					if (response && hasDataListener && !hadError && !(signal && signal.aborted)) {
+						const err = new Error('Premature close');
+						err.code = 'ERR_STREAM_PREMATURE_CLOSE';
+						response.body.emit('error', err);
+					}
+				});
+			});
+		}
 
 		req.on('response', function (res) {
 			clearTimeout(reqTimeout);
@@ -28198,7 +28376,7 @@ function fetch(url, opts) {
 							size: request.size
 						};
 
-						if (!isDomainOrSubdomain(request.url, locationURL)) {
+						if (!isDomainOrSubdomain(request.url, locationURL) || !isSameProtocol(request.url, locationURL)) {
 							for (const name of ['authorization', 'www-authenticate', 'cookie', 'cookie2']) {
 								requestOpts.headers.delete(name);
 							}
@@ -28291,6 +28469,13 @@ function fetch(url, opts) {
 					response = new Response(body, response_options);
 					resolve(response);
 				});
+				raw.on('end', function () {
+					// some old IIS servers return zero-length OK deflate responses, so 'data' is never emitted.
+					if (!response) {
+						response = new Response(body, response_options);
+						resolve(response);
+					}
+				});
 				return;
 			}
 
@@ -28310,6 +28495,41 @@ function fetch(url, opts) {
 		writeToStream(req, request);
 	});
 }
+function fixResponseChunkedTransferBadEnding(request, errorCallback) {
+	let socket;
+
+	request.on('socket', function (s) {
+		socket = s;
+	});
+
+	request.on('response', function (response) {
+		const headers = response.headers;
+
+		if (headers['transfer-encoding'] === 'chunked' && !headers['content-length']) {
+			response.once('close', function (hadError) {
+				// if a data listener is still present we didn't end cleanly
+				const hasDataListener = socket.listenerCount('data') > 0;
+
+				if (hasDataListener && !hadError) {
+					const err = new Error('Premature close');
+					err.code = 'ERR_STREAM_PREMATURE_CLOSE';
+					errorCallback(err);
+				}
+			});
+		}
+	});
+}
+
+function destroyStream(stream, err) {
+	if (stream.destroy) {
+		stream.destroy(err);
+	} else {
+		// node < 8
+		stream.emit('error', err);
+		stream.end();
+	}
+}
+
 /**
  * Redirect code matching
  *
@@ -31705,6 +31925,26 @@ mutation ($labelableId: ID!, $labelIds: [ID!]!) {
 }
 `;
 
+const closeDiscussionQuery = `
+mutation ($discussionId: ID!, $reason: DiscussionCloseReason) {
+  closeDiscussion(input: {discussionId: $discussionId, reason: $reason}) {
+    discussion {
+      closed
+    }
+  }
+}
+`;
+
+const reopenDiscussionQuery = `
+mutation ($discussionId: ID!) {
+  reopenDiscussion(input: {discussionId: $discussionId}) {
+    discussion {
+      closed
+    }
+  }
+}
+`;
+
 const lockLockableQuery = `
 mutation ($lockableId: ID!) {
   lockLockable(input: {lockableId: $lockableId}) {
@@ -31732,6 +31972,8 @@ module.exports = {
   getDiscussionLabelsQuery,
   addLabelsToLabelableQuery,
   removeLabelsFromLabelableQuery,
+  closeDiscussionQuery,
+  reopenDiscussionQuery,
   lockLockableQuery,
   unlockLockableQuery
 };
@@ -31770,6 +32012,24 @@ const extendedJoi = Joi.extend(joi => {
       }
     }
   };
+}).extend(joi => {
+  return {
+    type: 'closeReason',
+    base: joi.string(),
+    coerce: {
+      from: 'string',
+      method(value, helpers) {
+        value = value.trim();
+        if (value === 'not planned') {
+          value = 'not_planned';
+        } else if (['duplicate', 'outdated', 'resolved'].includes(value)) {
+          value = value.toUpperCase();
+        }
+
+        return {value};
+      }
+    }
+  };
 });
 
 const configSchema = Joi.object({
@@ -31793,6 +32053,20 @@ const configSchema = Joi.object({
 
 const actions = {
   close: Joi.boolean(),
+
+  'close-reason': Joi.alternatives().try(
+    Joi.boolean().only(false),
+    extendedJoi
+      .closeReason()
+      .valid(
+        'completed',
+        'not_planned',
+        'DUPLICATE',
+        'OUTDATED',
+        'RESOLVED',
+        ''
+      )
+  ),
 
   reopen: Joi.boolean(),
 
@@ -31839,6 +32113,7 @@ const actionSchema = Joi.object()
     Joi.string().trim().max(51),
     Joi.object().keys({
       close: actions.close.default(false),
+      'close-reason': actions['close-reason'].default(''),
       reopen: actions.reopen.default(false),
       lock: actions.lock.default(false),
       unlock: actions.unlock.default(false),
@@ -32064,7 +32339,7 @@ module.exports = JSON.parse('[["0","\\u0000",128],["a1","｡",62],["8140","　�
 /***/ ((module) => {
 
 "use strict";
-module.exports = JSON.parse('{"name":"joi","description":"Object schema validation","version":"17.7.0","repository":"git://github.com/hapijs/joi","main":"lib/index.js","types":"lib/index.d.ts","browser":"dist/joi-browser.min.js","files":["lib/**/*","dist/*"],"keywords":["schema","validation"],"dependencies":{"@hapi/hoek":"^9.0.0","@hapi/topo":"^5.0.0","@sideway/address":"^4.1.3","@sideway/formula":"^3.0.0","@sideway/pinpoint":"^2.0.0"},"devDependencies":{"@hapi/bourne":"2.x.x","@hapi/code":"8.x.x","@hapi/joi-legacy-test":"npm:@hapi/joi@15.x.x","@hapi/lab":"^25.0.1","@types/node":"^14.18.24","typescript":"4.3.x"},"scripts":{"prepublishOnly":"cd browser && npm install && npm run build","test":"lab -t 100 -a @hapi/code -L -Y","test-cov-html":"lab -r html -o coverage.html -a @hapi/code"},"license":"BSD-3-Clause"}');
+module.exports = JSON.parse('{"name":"joi","description":"Object schema validation","version":"17.9.2","repository":"git://github.com/hapijs/joi","main":"lib/index.js","types":"lib/index.d.ts","browser":"dist/joi-browser.min.js","files":["lib/**/*","dist/*"],"keywords":["schema","validation"],"dependencies":{"@hapi/hoek":"^9.0.0","@hapi/topo":"^5.0.0","@sideway/address":"^4.1.3","@sideway/formula":"^3.0.1","@sideway/pinpoint":"^2.0.0"},"devDependencies":{"@hapi/bourne":"2.x.x","@hapi/code":"8.x.x","@hapi/joi-legacy-test":"npm:@hapi/joi@15.x.x","@hapi/lab":"^25.0.1","@types/node":"^14.18.24","typescript":"4.3.x"},"scripts":{"prepublishOnly":"cd browser && npm install && npm run build","test":"lab -t 100 -a @hapi/code -L -Y","test-cov-html":"lab -r html -o coverage.html -a @hapi/code"},"license":"BSD-3-Clause"}');
 
 /***/ }),
 
@@ -32129,6 +32404,8 @@ const {
   getDiscussionLabelsQuery,
   addLabelsToLabelableQuery,
   removeLabelsFromLabelableQuery,
+  closeDiscussionQuery,
+  reopenDiscussionQuery,
   lockLockableQuery,
   unlockLockableQuery
 } = __nccwpck_require__(7639);
@@ -32197,13 +32474,15 @@ class App {
       };
     }
 
-    const lock = {
-      active: threadData.locked,
-      reason: threadData.active_lock_reason
-    };
-
     if (actions.comment) {
       core.debug('Commenting');
+
+      const lock = {
+        active: threadData.locked,
+        reason: threadData.active_lock_reason,
+        restoreLock: !actions.unlock
+      };
+
       await this.ensureUnlock({issue, discussion}, lock, async () => {
         for (let commentBody of actions.comment) {
           commentBody = commentBody.replace(
@@ -32322,45 +32601,63 @@ class App {
       }
     }
 
-    if (threadType !== 'discussion') {
-      if (
-        actions.reopen &&
-        threadData.state === 'closed' &&
-        !threadData.merged
-      ) {
-        core.debug('Reopening');
+    if (actions.reopen && threadData.state === 'closed' && !threadData.merged) {
+      core.debug('Reopening');
+
+      if (threadType === 'discussion') {
+        await this.client.graphql(reopenDiscussionQuery, {
+          discussionId: discussion.node_id
+        });
+      } else {
         await this.client.rest.issues.update({...issue, state: 'open'});
       }
+    }
 
-      if (actions.close && threadData.state === 'open') {
-        core.debug('Closing');
-        await this.client.rest.issues.update({...issue, state: 'closed'});
+    if (actions.close && threadData.state === 'open') {
+      core.debug('Closing');
+
+      const closeReason = actions['close-reason'];
+
+      if (threadType === 'discussion') {
+        const params = {discussionId: discussion.node_id};
+        if (closeReason) {
+          params.reason = closeReason;
+        }
+
+        await this.client.graphql(closeDiscussionQuery, params);
+      } else {
+        const params = {...issue, state: 'closed'};
+
+        if (closeReason) {
+          params.state_reason = closeReason;
+        }
+
+        await this.client.rest.issues.update(params);
       }
     }
 
     if (actions.lock && !threadData.locked) {
       core.debug('Locking');
+
       if (threadType === 'discussion') {
         await this.client.graphql(lockLockableQuery, {
           lockableId: discussion.node_id
         });
       } else {
         const params = {...issue};
+
         const lockReason = actions['lock-reason'];
         if (lockReason) {
-          Object.assign(params, {
-            lock_reason: lockReason,
-            headers: {
-              Accept: 'application/vnd.github.sailor-v-preview+json'
-            }
-          });
+          params.lock_reason = lockReason;
         }
+
         await this.client.rest.issues.lock(params);
       }
     }
 
     if (actions.unlock && threadData.locked) {
       core.debug('Unlocking');
+
       if (threadType === 'discussion') {
         await this.client.graphql(unlockLockableQuery, {
           lockableId: discussion.node_id
@@ -32399,12 +32696,7 @@ class App {
     if (lock.active) {
       if (issue) {
         if (!lock.hasOwnProperty('reason')) {
-          const {data: issueData} = await this.client.rest.issues.get({
-            ...issue,
-            headers: {
-              Accept: 'application/vnd.github.sailor-v-preview+json'
-            }
-          });
+          const {data: issueData} = await this.client.rest.issues.get(issue);
           lock.reason = issueData.active_lock_reason;
         }
 
@@ -32422,22 +32714,18 @@ class App {
         actionError = err;
       }
 
-      if (issue) {
-        if (lock.reason) {
-          issue = {
-            ...issue,
-            lock_reason: lock.reason,
-            headers: {
-              Accept: 'application/vnd.github.sailor-v-preview+json'
-            }
-          };
-        }
+      if (lock.restoreLock) {
+        if (issue) {
+          if (lock.reason) {
+            issue = {...issue, lock_reason: lock.reason};
+          }
 
-        await this.client.rest.issues.lock(issue);
-      } else {
-        await this.client.graphql(lockLockableQuery, {
-          lockableId: discussion.node_id
-        });
+          await this.client.rest.issues.lock(issue);
+        } else {
+          await this.client.graphql(lockLockableQuery, {
+            lockableId: discussion.node_id
+          });
+        }
       }
 
       if (actionError) {
