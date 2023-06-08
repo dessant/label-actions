@@ -77,16 +77,15 @@ pull requests or discussions by grouping them under the
   - Remove labels, value must be either a label or a list of labels
   - Optional, defaults to `''`
 - **`close`**
-  - Close threads, value must be either `true` or `false`,
-    ignored for discussions
+  - Close threads, value must be either `true` or `false`
   - Optional, defaults to `false`
 - **`close-reason`**
-  - Reason for closing threads, value must be
-    either `completed` or `not planned`, ignored for discussions
-  - Optional, defaults to `completed`
+  - Reason for closing threads, value must be:
+    - `completed` or `not planned` for issues
+    - `duplicate`, `outdated` or `resolved` for discussions
+  - Optional, defaults to `''`
 - **`reopen`**
-  - Reopen threads, value must be either `true` or `false`,
-    ignored for discussions
+  - Reopen threads, value must be either `true` or `false`
   - Optional, defaults to `false`
 - **`lock`**
   - Lock threads, value must be either `true` or `false`
@@ -263,6 +262,10 @@ wip:
 # The `solved` label is added to discussions
 solved:
   discussions:
+    # Close the discussion
+    close: true
+    # Set a close reason
+    close-reason: 'resolved'
     # Lock the discussion
     lock: true
 

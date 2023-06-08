@@ -78,6 +78,26 @@ mutation ($labelableId: ID!, $labelIds: [ID!]!) {
 }
 `;
 
+const closeDiscussionQuery = `
+mutation ($discussionId: ID!, $reason: DiscussionCloseReason) {
+  closeDiscussion(input: {discussionId: $discussionId, reason: $reason}) {
+    discussion {
+      closed
+    }
+  }
+}
+`;
+
+const reopenDiscussionQuery = `
+mutation ($discussionId: ID!) {
+  reopenDiscussion(input: {discussionId: $discussionId}) {
+    discussion {
+      closed
+    }
+  }
+}
+`;
+
 const lockLockableQuery = `
 mutation ($lockableId: ID!) {
   lockLockable(input: {lockableId: $lockableId}) {
@@ -105,6 +125,8 @@ module.exports = {
   getDiscussionLabelsQuery,
   addLabelsToLabelableQuery,
   removeLabelsFromLabelableQuery,
+  closeDiscussionQuery,
+  reopenDiscussionQuery,
   lockLockableQuery,
   unlockLockableQuery
 };

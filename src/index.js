@@ -10,6 +10,8 @@ const {
   getDiscussionLabelsQuery,
   addLabelsToLabelableQuery,
   removeLabelsFromLabelableQuery,
+  closeDiscussionQuery,
+  reopenDiscussionQuery,
   lockLockableQuery,
   unlockLockableQuery
 } = require('./data');
@@ -205,25 +207,38 @@ class App {
       }
     }
 
-    if (threadType !== 'discussion') {
-      if (
-        actions.reopen &&
-        threadData.state === 'closed' &&
-        !threadData.merged
-      ) {
-        core.debug('Reopening');
+    if (actions.reopen && threadData.state === 'closed' && !threadData.merged) {
+      core.debug('Reopening');
 
+      if (threadType === 'discussion') {
+        await this.client.graphql(reopenDiscussionQuery, {
+          discussionId: discussion.node_id
+        });
+      } else {
         await this.client.rest.issues.update({...issue, state: 'open'});
       }
+    }
 
-      if (actions.close && threadData.state === 'open') {
-        core.debug('Closing');
+    if (actions.close && threadData.state === 'open') {
+      core.debug('Closing');
 
-        await this.client.rest.issues.update({
-          ...issue,
-          state: 'closed',
-          state_reason: actions['close-reason']
-        });
+      const closeReason = actions['close-reason'];
+
+      if (threadType === 'discussion') {
+        const params = {discussionId: discussion.node_id};
+        if (closeReason) {
+          params.reason = closeReason;
+        }
+
+        await this.client.graphql(closeDiscussionQuery, params);
+      } else {
+        const params = {...issue, state: 'closed'};
+
+        if (closeReason) {
+          params.state_reason = closeReason;
+        }
+
+        await this.client.rest.issues.update(params);
       }
     }
 
