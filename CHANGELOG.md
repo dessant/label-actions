@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.1.0](https://github.com/dessant/label-actions/compare/v3.0.0...v3.1.0) (2023-06-08)
+
+
+### Features
+
+* close and reopen discussions ([6fcd004](https://github.com/dessant/label-actions/commit/6fcd0042ba4a0d31bda6006e4b725082269d8462)), closes [#24](https://github.com/dessant/label-actions/issues/24)
+* set close reason ([5155811](https://github.com/dessant/label-actions/commit/515581124b5f9c932553ce09bb3ec81d025c0d4d)), closes [#22](https://github.com/dessant/label-actions/issues/22)
+
+
+### Bug Fixes
+
+* listen to correct pull request event ([0049c08](https://github.com/dessant/label-actions/commit/0049c08346729a2d6ce7fe9f85e70dd425aac943))
+* restore lock state only when needed ([8ebc35d](https://github.com/dessant/label-actions/commit/8ebc35d98bf4a8c61d6066fe76c310200e89a7f6)), closes [#23](https://github.com/dessant/label-actions/issues/23)
+
 ## [3.0.0](https://github.com/dessant/label-actions/compare/v2.2.0...v3.0.0) (2022-12-04)
 
 
