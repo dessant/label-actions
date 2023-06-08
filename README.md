@@ -112,7 +112,7 @@ name: 'Label Actions'
 on:
   issues:
     types: [labeled, unlabeled]
-  pull_request:
+  pull_request_target:
     types: [labeled, unlabeled]
   discussion:
     types: [labeled, unlabeled]
