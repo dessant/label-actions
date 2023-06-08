@@ -25,7 +25,7 @@ must be configured. The following actions are supported:
 - Remove labels
 - Close threads
 - Reopen threads
-- Lock threads with an optional lock reason
+- Lock threads
 - Unlock threads
 
 ## Usage
@@ -80,6 +80,10 @@ pull requests or discussions by grouping them under the
   - Close threads, value must be either `true` or `false`,
     ignored for discussions
   - Optional, defaults to `false`
+- **`close-reason`**
+  - Reason for closing threads, value must be
+    either `completed` or `not planned`, ignored for discussions
+  - Optional, defaults to `completed`
 - **`reopen`**
   - Reopen threads, value must be either `true` or `false`,
     ignored for discussions
@@ -235,6 +239,8 @@ feature:
       :wave: @{issue-author}, please use our idea board to request new features.
     # Close the issue
     close: true
+    # Set a close reason
+    close-reason: 'not planned'
 
 # The `wip` label is added to pull requests
 wip:

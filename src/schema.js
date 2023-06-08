@@ -26,6 +26,22 @@ const extendedJoi = Joi.extend(joi => {
       }
     }
   };
+}).extend(joi => {
+  return {
+    type: 'closeReason',
+    base: joi.string(),
+    coerce: {
+      from: 'string',
+      method(value, helpers) {
+        value = value.trim();
+        if (value === 'not planned') {
+          value = 'not_planned';
+        }
+
+        return {value};
+      }
+    }
+  };
 });
 
 const configSchema = Joi.object({
@@ -49,6 +65,8 @@ const configSchema = Joi.object({
 
 const actions = {
   close: Joi.boolean(),
+
+  'close-reason': extendedJoi.closeReason().valid('completed', 'not_planned'),
 
   reopen: Joi.boolean(),
 
@@ -95,6 +113,7 @@ const actionSchema = Joi.object()
     Joi.string().trim().max(51),
     Joi.object().keys({
       close: actions.close.default(false),
+      'close-reason': actions['close-reason'].default('completed'),
       reopen: actions.reopen.default(false),
       lock: actions.lock.default(false),
       unlock: actions.unlock.default(false),

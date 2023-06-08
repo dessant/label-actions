@@ -212,17 +212,24 @@ class App {
         !threadData.merged
       ) {
         core.debug('Reopening');
+
         await this.client.rest.issues.update({...issue, state: 'open'});
       }
 
       if (actions.close && threadData.state === 'open') {
         core.debug('Closing');
-        await this.client.rest.issues.update({...issue, state: 'closed'});
+
+        await this.client.rest.issues.update({
+          ...issue,
+          state: 'closed',
+          state_reason: actions['close-reason']
+        });
       }
     }
 
     if (actions.lock && !threadData.locked) {
       core.debug('Locking');
+
       if (threadType === 'discussion') {
         await this.client.graphql(lockLockableQuery, {
           lockableId: discussion.node_id
@@ -241,6 +248,7 @@ class App {
 
     if (actions.unlock && threadData.locked) {
       core.debug('Unlocking');
+
       if (threadType === 'discussion') {
         await this.client.graphql(unlockLockableQuery, {
           lockableId: discussion.node_id
