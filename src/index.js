@@ -2,6 +2,7 @@ import core from '@actions/core';
 import github from '@actions/github';
 import yaml from 'js-yaml';
 
+import {getClient} from './utils.js';
 import {configSchema, actionSchema} from './schema.js';
 import {
   addDiscussionCommentQuery,
@@ -19,7 +20,7 @@ import {
 async function run() {
   try {
     const config = getConfig();
-    const client = github.getOctokit(config['github-token']);
+    const client = getClient(config['github-token']);
 
     const actions = await getActionConfig(client, config['config-path']);
 
