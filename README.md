@@ -127,7 +127,7 @@ jobs:
   action:
     runs-on: ubuntu-latest
     steps:
-      - uses: dessant/label-actions@v3
+      - uses: dessant/label-actions@v4
 ```
 
 ### Available input parameters
@@ -157,7 +157,7 @@ jobs:
   action:
     runs-on: ubuntu-latest
     steps:
-      - uses: dessant/label-actions@v3
+      - uses: dessant/label-actions@v4
         with:
           github-token: ${{ github.token }}
           config-path: '.github/label-actions.yml'
@@ -171,7 +171,7 @@ This step will process label events only for issues.
 <!-- prettier-ignore -->
 ```yaml
     steps:
-      - uses: dessant/label-actions@v3
+      - uses: dessant/label-actions@v4
         with:
           process-only: 'issues'
 ```
@@ -181,7 +181,7 @@ This step will process label events only for pull requests and discussions.
 <!-- prettier-ignore -->
 ```yaml
     steps:
-      - uses: dessant/label-actions@v3
+      - uses: dessant/label-actions@v4
         with:
           process-only: 'prs, discussions'
 ```
@@ -292,7 +292,7 @@ using the `github-token` input parameter.
 <!-- prettier-ignore -->
 ```yaml
     steps:
-      - uses: dessant/label-actions@v3
+      - uses: dessant/label-actions@v4
         with:
           github-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 ```
