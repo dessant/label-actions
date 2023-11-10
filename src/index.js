@@ -1,9 +1,9 @@
-const core = require('@actions/core');
-const github = require('@actions/github');
-const yaml = require('js-yaml');
+import core from '@actions/core';
+import github from '@actions/github';
+import yaml from 'js-yaml';
 
-const {configSchema, actionSchema} = require('./schema');
-const {
+import {configSchema, actionSchema} from './schema.js';
+import {
   addDiscussionCommentQuery,
   getLabelQuery,
   createLabelQuery,
@@ -14,7 +14,7 @@ const {
   reopenDiscussionQuery,
   lockLockableQuery,
   unlockLockableQuery
-} = require('./data');
+} from './data.js';
 
 async function run() {
   try {

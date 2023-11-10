@@ -1,4 +1,4 @@
-const Joi = require('joi');
+import Joi from 'joi';
 
 const extendedJoi = Joi.extend(joi => {
   return {
@@ -144,4 +144,4 @@ const actionSchema = Joi.object()
   .min(1)
   .max(200);
 
-module.exports = {configSchema, actionSchema};
+export {configSchema, actionSchema};

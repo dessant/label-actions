@@ -118,7 +118,7 @@ mutation ($lockableId: ID!) {
 }
 `;
 
-module.exports = {
+export {
   addDiscussionCommentQuery,
   getLabelQuery,
   createLabelQuery,
