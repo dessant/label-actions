@@ -1,6 +1,18 @@
 # Changelog
 
-All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
+All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
+
+## [4.0.0](https://github.com/dessant/label-actions/compare/v3.1.0...v4.0.0) (2023-11-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* the action now requires Node.js 20
+
+### Bug Fixes
+
+* retry and throttle GitHub API requests ([0178594](https://github.com/dessant/label-actions/commit/01785943e20cda2ed04373038733db40c5e61f32))
+* update dependencies ([6b166ca](https://github.com/dessant/label-actions/commit/6b166caa4f407a4763b5a46a695a0fe0c9a190a6))
 
 ## [3.1.0](https://github.com/dessant/label-actions/compare/v3.0.0...v3.1.0) (2023-06-08)
 
