@@ -70,16 +70,16 @@ const actions = {
 
   'close-reason': Joi.alternatives().try(
     Joi.boolean().only(false),
-    extendedJoi
-      .closeReason()
-      .valid(
-        'completed',
-        'not_planned',
-        'DUPLICATE',
-        'OUTDATED',
-        'RESOLVED',
-        ''
-      )
+    extendedJoi.closeReason().valid(
+      // issues
+      'completed',
+      'not_planned',
+      // discussions
+      'DUPLICATE',
+      'OUTDATED',
+      'RESOLVED',
+      ''
+    )
   ),
 
   reopen: Joi.boolean(),
