@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [4.0.1](https://github.com/dessant/label-actions/compare/v4.0.0...v4.0.1) (2023-11-21)
+
+
+### Bug Fixes
+
+* always apply close and lock reason ([a1d1e68](https://github.com/dessant/label-actions/commit/a1d1e683415d1c9c910dfdf461abe040e806d7ed))
+
 ## [4.0.0](https://github.com/dessant/label-actions/compare/v3.1.0...v4.0.0) (2023-11-10)
 
 
