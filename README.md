@@ -3,7 +3,7 @@
 Label Actions is a GitHub bot that performs certain actions when issues,
 pull requests or discussions are labeled or unlabeled.
 
-<img width="800" src="https://raw.githubusercontent.com/dessant/label-actions/master/assets/screenshot.png">
+<img width="800" src="https://raw.githubusercontent.com/dessant/label-actions/main/assets/screenshot.png">
 
 ## Supporting the Project
 
@@ -83,6 +83,7 @@ pull requests or discussions by grouping them under the
   - Reason for closing threads, value must be:
     - `completed` or `not planned` for issues
     - `duplicate`, `outdated` or `resolved` for discussions
+  - Ignored for pull requests
   - Optional, defaults to `''`
 - **`reopen`**
   - Reopen threads, value must be either `true` or `false`
@@ -92,8 +93,8 @@ pull requests or discussions by grouping them under the
   - Optional, defaults to `false`
 - **`lock-reason`**
   - Reason for locking threads, value must be one
-    of `resolved`, `off-topic`, `too heated` or `spam`,
-    ignored for discussions
+    of `resolved`, `off-topic`, `too heated` or `spam`
+  - Ignored for discussions
   - Optional, defaults to `''`
 - **`unlock`**
   - Unlock threads, value must be either `true` or `false`
@@ -198,7 +199,7 @@ on:
 
 ### Configuring labels and actions
 
-Labels and actions are specified in a configuration file.
+Labels and actions are specified in a YAML configuration file.
 The following example showcases how desired actions may be declared:
 
 <!-- prettier-ignore -->
@@ -217,7 +218,7 @@ heated:
   lock-reason: 'too heated'
   # Additionally, add a label to pull requests
   prs:
-    label: 'on hold'
+    label: 'pr: on hold'
 
 # The `heated` label is removed from issues, pull requests or discussions
 -heated:
@@ -241,23 +242,24 @@ feature:
     # Set a close reason
     close-reason: 'not planned'
 
-# The `wip` label is added to pull requests
-wip:
+# The `qa: needed` label is added to pull requests
+'qa: needed':
   prs:
     # Add labels
     label:
-      - 'on hold'
-      - 'needs feedback'
+      - 'qa: l10n'
+      - 'pr: on hold'
 
-# The `wip` label is removed from pull requests
--wip:
+
+# The `qa: needed` label is removed from pull requests
+'-qa: needed':
   prs:
     # Add label
-    label: 'needs QA'
+    label: 'qa: verified'
     # Remove labels
     unlabel:
-      - 'on hold'
-      - 'needs feedback'
+      - 'qa: l10n'
+      - 'pr: on hold'
 
 # The `solved` label is added to discussions
 solved:
