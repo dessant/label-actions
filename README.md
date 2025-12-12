@@ -38,7 +38,7 @@ must be configured. The following actions are supported:
 
 ### Inputs
 
-The bot can be configured using [input parameters](https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idstepswith).
+The bot can be configured using [input parameters](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idstepswith).
 
 <!-- prettier-ignore -->
 - **`github-token`**
@@ -84,7 +84,9 @@ pull requests or discussions by grouping them under the
     - `completed` or `not planned` for issues
     - `duplicate`, `outdated` or `resolved` for discussions
   - Ignored for pull requests
-  - Optional, defaults to `''`
+  - Optional, defaults to:
+    - `completed` for issues
+    - `resolved` for discussions
 - **`reopen`**
   - Reopen threads, value must be either `true` or `false`
   - Optional, defaults to `false`
@@ -128,7 +130,7 @@ jobs:
   action:
     runs-on: ubuntu-latest
     steps:
-      - uses: dessant/label-actions@v4
+      - uses: dessant/label-actions@v5
 ```
 
 ### Available input parameters
@@ -158,7 +160,7 @@ jobs:
   action:
     runs-on: ubuntu-latest
     steps:
-      - uses: dessant/label-actions@v4
+      - uses: dessant/label-actions@v5
         with:
           github-token: ${{ github.token }}
           config-path: '.github/label-actions.yml'
@@ -172,7 +174,7 @@ This step will process label events only for issues.
 <!-- prettier-ignore -->
 ```yaml
     steps:
-      - uses: dessant/label-actions@v4
+      - uses: dessant/label-actions@v5
         with:
           process-only: 'issues'
 ```
@@ -182,7 +184,7 @@ This step will process label events only for pull requests and discussions.
 <!-- prettier-ignore -->
 ```yaml
     steps:
-      - uses: dessant/label-actions@v4
+      - uses: dessant/label-actions@v5
         with:
           process-only: 'prs, discussions'
 ```
@@ -285,23 +287,23 @@ The action uses an installation access token by default to interact with GitHub.
 You may also authenticate with a personal access token to perform actions
 as a GitHub user instead of the `github-actions` app.
 
-Create a [personal access token](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token)
-with the `repo` or `public_repo` scopes enabled, and add the token as an
-[encrypted secret](https://docs.github.com/en/actions/reference/encrypted-secrets#creating-encrypted-secrets-for-a-repository)
+Create a [personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic)
+with the `repo` or `public_repo` scopes enabled, and add the token as a
+[secret](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets#creating-secrets-for-a-repository)
 for the repository or organization, then provide the action with the secret
 using the `github-token` input parameter.
 
 <!-- prettier-ignore -->
 ```yaml
     steps:
-      - uses: dessant/label-actions@v4
+      - uses: dessant/label-actions@v5
         with:
           github-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 ```
 
 ## License
 
-Copyright (c) 2019-2023 Armin Sebastian
+Copyright (c) 2019-2025 Armin Sebastian
 
 This software is released under the terms of the MIT License.
 See the [LICENSE](LICENSE) file for further information.
