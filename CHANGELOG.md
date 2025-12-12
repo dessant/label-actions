@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [5.0.0](https://github.com/dessant/label-actions/compare/v4.0.1...v5.0.0) (2025-12-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* the action now requires Node.js 24
+
+### Bug Fixes
+
+* update dependencies ([eec3541](https://github.com/dessant/label-actions/commit/eec3541e9d22ed685072b2fb16af70ac37630526))
+* uppercase default close reason for discussions ([af2405b](https://github.com/dessant/label-actions/commit/af2405bc0f669689bed9d9d2ab6c245a956ea346)), closes [#28](https://github.com/dessant/label-actions/issues/28)
+
 ## [4.0.1](https://github.com/dessant/label-actions/compare/v4.0.0...v4.0.1) (2023-11-21)
 
 
