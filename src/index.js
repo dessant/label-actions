@@ -214,7 +214,7 @@ class App {
 
     const closeReason =
       actions['close-reason'] ||
-      (threadType === 'discussion' ? 'resolved' : 'completed');
+      (threadType === 'discussion' ? 'RESOLVED' : 'completed');
     if (
       actions.close &&
       (threadState.state === 'open' ||
