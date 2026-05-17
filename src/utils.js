@@ -8,7 +8,10 @@ import {configSchema, actionSchema} from './schema.js';
 
 function getConfig() {
   const input = Object.fromEntries(
-    Object.keys(schema.describe().keys).map(item => [item, getInput(item)])
+    Object.keys(configSchema.describe().keys).map(item => [
+      item,
+      getInput(item)
+    ])
   );
 
   const {error, value} = configSchema.validate(input, {abortEarly: false});
