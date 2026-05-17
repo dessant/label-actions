@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [5.0.1](https://github.com/dessant/label-actions/compare/v5.0.0...v5.0.1) (2026-05-17)
+
+
+### Bug Fixes
+
+* update dependencies ([eb2b50c](https://github.com/dessant/label-actions/commit/eb2b50c6fa4307407d609602acc4b1eea12cc56d))
+
 ## [5.0.0](https://github.com/dessant/label-actions/compare/v4.0.1...v5.0.0) (2025-12-12)
 
 
