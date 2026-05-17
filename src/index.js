@@ -1,5 +1,5 @@
-import core from '@actions/core';
-import github from '@actions/github';
+import {debug, setFailed} from '@actions/core';
+import {context} from '@actions/github';
 
 import {getConfig, getActionConfig, getClient} from './utils.js';
 
@@ -27,7 +27,7 @@ async function run() {
 
     await app.performActions();
   } catch (err) {
-    core.setFailed(err);
+    setFailed(err);
   }
 }
 
@@ -39,7 +39,7 @@ class App {
   }
 
   async performActions() {
-    const payload = github.context.payload;
+    const payload = context.payload;
 
     if (payload.sender.type === 'Bot') {
       return;
@@ -65,7 +65,7 @@ class App {
       return;
     }
 
-    const {owner, repo} = github.context.repo;
+    const {owner, repo} = context.repo;
 
     const threadState = {
       state: threadData.state,
@@ -84,7 +84,7 @@ class App {
         : {owner, repo, issue_number: threadData.number};
 
     if (actions.comment) {
-      core.debug('Commenting');
+      debug('Commenting');
 
       const commentAction = async () => {
         for (let commentBody of actions.comment) {
@@ -147,7 +147,7 @@ class App {
         );
 
         if (newLabels.length) {
-          core.debug('Labeling');
+          debug('Labeling');
 
           if (threadType === 'discussion') {
             const labels = [];
@@ -193,7 +193,7 @@ class App {
         );
 
         if (matchingLabels.length) {
-          core.debug('Unlabeling');
+          debug('Unlabeling');
 
           if (threadType === 'discussion') {
             await this.client.graphql(removeLabelsFromLabelableQuery, {
@@ -220,7 +220,7 @@ class App {
       (threadState.state === 'open' ||
         (threadType !== 'pr' && threadState.stateReason !== closeReason))
     ) {
-      core.debug('Closing');
+      debug('Closing');
 
       if (threadType === 'discussion') {
         await this.client.graphql(closeDiscussionQuery, {
@@ -245,7 +245,7 @@ class App {
       threadState.state === 'closed' &&
       !threadState.merged
     ) {
-      core.debug('Reopening');
+      debug('Reopening');
 
       if (threadType === 'discussion') {
         await this.client.graphql(reopenDiscussionQuery, {
@@ -265,7 +265,7 @@ class App {
         (threadType !== 'discussion' &&
           threadState.lockReason !== (lockReason || null)))
     ) {
-      core.debug('Locking');
+      debug('Locking');
 
       if (threadType === 'discussion') {
         await this.client.graphql(lockLockableQuery, {
@@ -290,7 +290,7 @@ class App {
     }
 
     if (actions.unlock && threadState.locked) {
-      core.debug('Unlocking');
+      debug('Unlocking');
 
       if (threadType === 'discussion') {
         await this.client.graphql(unlockLockableQuery, {
