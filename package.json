@@ -6,7 +6,7 @@
   "license": "MIT",
   "homepage": "https://github.com/dessant/label-actions",
   "repository": {
-    "url": "https://github.com/dessant/label-actions.git",
+    "url": "git+https://github.com/dessant/label-actions.git",
     "type": "git"
   },
   "bugs": {
