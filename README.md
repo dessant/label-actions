@@ -10,9 +10,9 @@ pull requests or discussions are labeled or unlabeled.
 The continued development of Label Actions is made possible
 thanks to the support of awesome backers. If you'd like to join them,
 please consider contributing with
-[Patreon](https://armin.dev/go/patreon?pr=label-actions&src=repo),
-[PayPal](https://armin.dev/go/paypal?pr=label-actions&src=repo) or
-[Bitcoin](https://armin.dev/go/bitcoin?pr=label-actions&src=repo).
+[Patreon](https://go.vapps.dev/patreon?pr=label-actions&src=repo),
+[PayPal](https://go.vapps.dev/paypal?pr=label-actions&src=repo) or
+[Bitcoin](https://go.vapps.dev/bitcoin?pr=label-actions&src=repo).
 
 ## How It Works
 
@@ -303,7 +303,7 @@ using the `github-token` input parameter.
 
 ## License
 
-Copyright (c) 2019-2025 Armin Sebastian
+Copyright (c) 2019-2026 Armin Sebastian
 
 This software is released under the terms of the MIT License.
 See the [LICENSE](LICENSE) file for further information.
