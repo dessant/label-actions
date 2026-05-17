@@ -55203,7 +55203,7 @@ Schema$1.prototype.extend = function extend(definition) {
 };
 
 
-var js_yaml_schema = Schema$1;
+var schema = Schema$1;
 
 var str = new type('tag:yaml.org,2002:str', {
   kind: 'scalar',
@@ -55220,7 +55220,7 @@ var map = new type('tag:yaml.org,2002:map', {
   construct: function (data) { return data !== null ? data : {}; }
 });
 
-var failsafe = new js_yaml_schema({
+var failsafe = new schema({
   explicit: [
     str,
     seq,
@@ -58610,7 +58610,7 @@ function renamed(from, to) {
 
 
 var Type                = type;
-var Schema              = js_yaml_schema;
+var Schema              = schema;
 var FAILSAFE_SCHEMA     = failsafe;
 var JSON_SCHEMA         = json;
 var CORE_SCHEMA         = core;
@@ -58823,7 +58823,10 @@ const actionSchema = joi_lib.object()
 
 function getConfig() {
   const input = Object.fromEntries(
-    Object.keys(schema.describe().keys).map(item => [item, getInput(item)])
+    Object.keys(configSchema.describe().keys).map(item => [
+      item,
+      getInput(item)
+    ])
   );
 
   const {error, value} = configSchema.validate(input, {abortEarly: false});
