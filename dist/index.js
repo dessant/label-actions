@@ -58713,7 +58713,7 @@ const extendedJoi = joi_lib.extend(joi => {
 });
 
 const configSchema = joi_lib.object({
-  'github-token': joi_lib.string().trim().max(100),
+  'github-token': joi_lib.string().trim().max(1000),
 
   'config-path': joi_lib.string()
     .trim()
