@@ -47,7 +47,7 @@ const extendedJoi = Joi.extend(joi => {
 });
 
 const configSchema = Joi.object({
-  'github-token': Joi.string().trim().max(100),
+  'github-token': Joi.string().trim().max(1000),
 
   'config-path': Joi.string()
     .trim()
