@@ -5,7 +5,7 @@ pull requests or discussions are labeled or unlabeled.
 
 <img width="800" src="https://raw.githubusercontent.com/dessant/label-actions/main/assets/screenshot.png">
 
-<h2 align="center">Sponsors</h2>
+## Sponsors
 
 </br>
 <div align="center">
