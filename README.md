@@ -5,6 +5,25 @@ pull requests or discussions are labeled or unlabeled.
 
 <img width="800" src="https://raw.githubusercontent.com/dessant/label-actions/main/assets/screenshot.png">
 
+<h2 align="center">Sponsors</h2>
+
+</br>
+<div align="center">
+  <a href="https://go.vapps.dev/m1/sponsor/lenso">
+    <div>
+      <picture>
+        <source srcset="https://i.imgur.com/YBkomfb.png" media="(prefers-color-scheme: dark)">
+        <img height="58" src="https://i.imgur.com/60KdpH7.png" alt="Lenso.ai"></picture>
+      <div>
+        </br>
+        <sup>Lenso.ai - Explore billions of images from all around the web.</br>
+          Search for places, people, duplicates, and more.</sup>
+      </div>
+    </div>
+  </a>
+</div>
+</br>
+
 ## Supporting the Project
 
 The continued development of Label Actions is made possible
